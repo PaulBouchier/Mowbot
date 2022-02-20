@@ -3,7 +3,7 @@ import sys
 import rospy
 
 from pySerialTransfer import pySerialTransfer as txfer
-from messages import TxPing, RxPong, RxOdometry, RxLog 
+from messages import TxPing, TxDriveMotorsRqst, RxPong, RxOdometry, RxLog
 
 # import a module that will hold objects to be accessed from any module
 sys.path.append('.')
@@ -11,6 +11,7 @@ import config
 
 # instantiate message-hander objects
 tx_ping = TxPing()
+tx_drive_motors_rqst = TxDriveMotorsRqst()
 rx_pong = RxPong()
 rx_odometry = RxOdometry()
 rx_log = RxLog()
@@ -27,6 +28,10 @@ def ping_callback(event):
     print('Sending ping')
     tx_ping.post()
 
+def drive_motors_callback(event):
+    print('Sending motors')
+    tx_drive_motors_rqst.post(50, 50)
+
 if __name__ == '__main__':
     rospy.init_node('esp_link', disable_signals=True)
     esp_port_name = rospy.get_param('~esp_port_name', "/dev/ttyUSB0")
@@ -34,6 +39,7 @@ if __name__ == '__main__':
     rospy.loginfo("esp_link using serial port: {}".format(esp_port_name))
 
     rospy.Timer(rospy.Duration(5.0), ping_callback)
+    rospy.Timer(rospy.Duration(6.0), drive_motors_callback)
 
     try:
         config.link = txfer.SerialTransfer(esp_port_name)
@@ -56,6 +62,7 @@ if __name__ == '__main__':
                     print('ERROR: {}'.format(config.link.status))
 
             tx_ping.send_posted()
+            tx_drive_motors_rqst.send_posted()
             time.sleep(0.01)
     
     except KeyboardInterrupt:
