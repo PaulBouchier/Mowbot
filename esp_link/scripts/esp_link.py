@@ -23,18 +23,32 @@ def init_link(port_name):
 def init_msgs(link):
     global tx_ping, rx_pong, rx_odometry, tx_drive_motors_rqst, rx_log
     tx_ping = TxPing(link)
-    #global rx_pong
     rx_pong = RxPong(link)
     rx_odometry = RxOdometry(link)
     tx_drive_motors_rqst = TxDriveMotorsRqst(link)
     rx_log = RxLog(link)
 
+def tick_link():
+    start_time = time.time()
+    link.tick()
+    end_time = time.time()
+    #print('tick_link: {} ms'.format((end_time - start_time)*1000))
+    if link.status < 0:
+        if link.status == txfer.CRC_ERROR:
+            print('ERROR: CRC_ERROR')
+        elif link.status == txfer.PAYLOAD_ERROR:
+            print('ERROR: PAYLOAD_ERROR')
+        elif link.status == txfer.STOP_BYTE_ERROR:
+            print('ERROR: STOP_BYTE_ERROR')
+        else:
+            print('ERROR: {}'.format(link.status))
 
 def ping_callback(event):
     print('Sending ping')
     tx_ping.post()
 
 def drive_motors_callback(event):
+    # OBSOLETE - unused
     speed = [50, 50]
     tx_drive_motors_rqst.post(speed[0], speed[1])
     print('Sending motors')
@@ -46,7 +60,7 @@ if __name__ == '__main__':
     rospy.loginfo("esp_link using serial port: {}".format(esp_port_name))
 
     rospy.Timer(rospy.Duration(5.0), ping_callback)
-    rospy.Timer(rospy.Duration(0.5), drive_motors_callback)
+    #rospy.Timer(rospy.Duration(0.5), drive_motors_callback)
 
     try:
         # initialize pySerialTransfer
@@ -67,19 +81,9 @@ if __name__ == '__main__':
         time.sleep(2) # allow some time for the Arduino to completely reset
         
         while True:
-            link.tick()
-
-            if link.status < 0:
-                if link.status == txfer.CRC_ERROR:
-                    print('ERROR: CRC_ERROR')
-                elif link.status == txfer.PAYLOAD_ERROR:
-                    print('ERROR: PAYLOAD_ERROR')
-                elif link.status == txfer.STOP_BYTE_ERROR:
-                    print('ERROR: STOP_BYTE_ERROR')
-                else:
-                    print('ERROR: {}'.format(link.status))
-
+            tick_link()
             tx_ping.send_posted()
+            tick_link()
             tx_drive_motors_rqst.send_posted()
             time.sleep(0.01)
     
