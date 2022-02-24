@@ -5,12 +5,14 @@ from math import sin, cos
 from pySerialTransfer import pySerialTransfer as txfer
 
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Quaternion
 from tf.broadcaster import TransformBroadcaster
 
 MAX_SPEED = 0.47      # meters/second
 BASE_WIDTH = 0.424    # meters, 16.675"
+WHEEL_RADIUS = 0.127  # meters
 
 class TxPing:
     def __init__(self, link):
@@ -69,6 +71,10 @@ class RxOdometry:
             self.odomBroadcaster = TransformBroadcaster()
             rospy.loginfo('Publishing tf frame: %s' % self.tf_frame)
 
+        # configure joint_state publishing, consumed by joint_state_publisher
+        self.joint_pub = rospy.Publisher('wheel_joints_state', JointState, queue_size=1)
+        self.joint_state = JointState(name=['left_wheel_joint', 'right_wheel_joint'])
+
         self.ros_odom_seq = 0
         self.last_esp_seq = 0
 
@@ -78,7 +84,6 @@ class RxOdometry:
     def handle_odometry(self):
         # rospy.logdebug ('Odometry callback got msg length: {}'.format(self.link.bytesRead))
         self.odom.header.seq = self.ros_odom_seq
-        self.ros_odom_seq += 1
         self.odom.header.stamp = rospy.Time.now()
         rec_size = 0
 
@@ -122,6 +127,12 @@ class RxOdometry:
         # member rightEncoderCount
         right_enc_cnt = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        #member leftWheelAngleRad
+        left_wheel_angle_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
+        #member rightWheelAngleRad
+        right_wheel_angle_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
 
         # populate pose heading quaternion
         quaternion = Quaternion()
@@ -142,6 +153,13 @@ class RxOdometry:
                     rospy.Time(),
                     "base_link",
                     self.tf_frame )
+
+        # publish joint states
+        self.joint_state.position = [left_wheel_angle_rad, right_wheel_angle_rad]
+        self.joint_state.header.stamp = rospy.Time.now()
+        self.joint_state.header.seq = self.ros_odom_seq
+        self.joint_pub.publish(self.joint_state)
+        self.ros_odom_seq += 1
 
         # print odometry data to logs now and then
         self.log_cnt += 1
