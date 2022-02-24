@@ -1,0 +1,319 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="rl500">
+
+  <xacro:property name="M_PI" value="3.1415926535897931" /> 
+
+  <material name="yellow">
+    <color rgba="1.0 1.0 0.4 1"/>
+  </material>
+  <material name="blue">
+    <color rgba="0 0 0.8 1"/>
+  </material>
+  <material name="black">
+    <color rgba="0.1 0.1 0.1 1"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 0.8 0.0 1.0"/>
+  </material>
+
+  <!-- default inertial macros -->
+  <xacro:macro name="default_body_inertial">
+	  <inertial>
+	    <mass value="10" />
+	    <origin xyz="0 0 0.0" />
+	    <inertia ixx="0.1" ixy="0.0" ixz="0.0" iyy="0.1" iyz="0.0" izz="0.5" />
+    </inertial>
+  </xacro:macro>
+  <xacro:macro name="default_small_inertial">
+	  <inertial>
+	    <mass value="0.5" />
+	    <origin xyz="0 0 0.0" />
+	    <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+  </xacro:macro>
+  <xacro:macro name="sensor_inertial">
+    <inertial>
+      <mass value="0.01" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.0001" />
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="sensor_visual">
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.05" />
+      </geometry>
+      <material name="blue" />
+    </visual>
+  </xacro:macro>
+
+<!-- 
+  base_link is a fictitious link(frame) that is on the ground right below base_link origin,
+  navigation stack depends on this frame
+-->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.010" rpy="0 0 0" />
+	      <geometry>
+	        <box size="0.05 0.05 0.001" />
+	      </geometry>
+	      <material name="green" />
+	  </visual>
+	  <collision>
+	    <origin xyz="0 0 0.010" rpy="0 0 0" />
+	    <geometry>
+	     <box size="0.05 0.05 0.001" />
+	    </geometry>
+	  </collision>
+  </link>
+
+  <xacro:macro name="battery_box_size">
+      <geometry>
+        <box size="0.279 0.475 0.241" />
+      </geometry>
+  </xacro:macro>
+
+  <link name="battery_box_link">
+    <visual>
+      <xacro:battery_box_size/>
+      <material name="yellow"/>
+    </visual>
+    <collision>
+      <xacro:battery_box_size/>
+    </collision>
+    <xacro:default_body_inertial/>
+  </link>
+
+  <gazebo reference="battery_box_link">
+    <material>Gazebo/Yellow</material>
+  </gazebo>
+  
+  <joint name="base_link_joint" type="fixed">
+    <origin xyz="-0.140 0 0.2" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="battery_box_link" />
+  </joint>
+
+  <xacro:macro name="mowing_head_size">
+    <geometry>
+      <cylinder length="0.241" radius="0.33"/>
+    </geometry>
+  </xacro:macro>
+
+  <link name="mowing_head_link">
+    <visual>
+      <xacro:mowing_head_size/>
+      <material name="yellow"/>
+    </visual>
+    <collision>
+      <xacro:mowing_head_size/>
+    </collision>
+    <xacro:default_body_inertial/>
+  </link>
+
+  <gazebo reference="mowing_head_link">
+    <material>Gazebo/Yellow</material>
+  </gazebo>
+  
+  <joint name="body_joint" type="fixed">
+    <origin xyz="0.42 0 0" rpy="0 0 0"/>
+    <parent link="battery_box_link" />
+    <child link="mowing_head_link"/>
+  </joint>
+
+  <xacro:macro name="castor_size">
+    <geometry>
+      <sphere radius="0.038"/>
+    </geometry>
+  </xacro:macro>
+
+  <link name="castor_link">
+    <visual>
+      <xacro:castor_size/>
+      <material name="black" />
+    </visual>
+    <collision>
+      <xacro:castor_size/>
+    </collision>
+    <xacro:default_small_inertial/>
+  </link>
+
+  <gazebo reference="castor_link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+  
+  <joint name="castor_joint" type="fixed">
+    <origin xyz="0.3 0 -0.159" rpy="0 0 0"/>
+    <parent link="mowing_head_link"/>
+    <child link="castor_link" />
+  </joint>
+
+  <xacro:macro name="wheel_size">
+    <geometry>
+      <cylinder length="0.05" radius="0.127"/>
+    </geometry>
+    <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
+  </xacro:macro>
+
+  <xacro:macro name="wheel" params="prefix reflect">
+
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <xacro:wheel_size/>
+        <material name="black" />
+      </visual>
+      <collision>
+        <xacro:wheel_size/>
+      </collision>
+      <xacro:default_small_inertial/>
+    </link>
+  
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <origin xyz="0.140 ${reflect*0.222} -0.070" rpy="0 0 0"/>
+      <axis rpy="0 0 0" xyz="0 1 0" />
+      <parent link="battery_box_link" />
+      <child link="${prefix}_wheel_link"/>
+    </joint>
+
+    <!-- This block provides the simulator (Gazebo) with information on a few additional
+    physical properties. See http://gazebosim.org/tutorials/?tut=ros_urdf for more-->
+    <gazebo reference="${prefix}_wheel_link">
+      <mu1 value="200.0"/>
+      <mu2 value="100.0"/>
+      <kp value="10000000.0" />
+      <kd value="1.0" />
+      <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <!-- This block connects the wheel joint to an actuator (motor), which informs both
+    simulation and visualization of the robot -->
+    <transmission name="${prefix}_wheel_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <actuator name="${prefix}_wheel_motor">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+      <joint name="${prefix}_wheel_joint">
+        <hardwareInterface>VelocityJointInterface</hardwareInterface>
+      </joint>
+    </transmission>
+
+  </xacro:macro>
+
+  <xacro:wheel prefix="left" reflect="1" />
+  <xacro:wheel prefix="right" reflect="-1" />
+  
+  <link name="imu">
+    <xacro:sensor_visual/>
+    <xacro:sensor_inertial/>
+  </link>
+  <gazebo reference="imu">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  
+
+  <joint name="imu_joint" type="fixed">
+    <axis xyz="0 1 0" />
+    <origin xyz="0.279 0.05 0.342" rpy="0 0 0" />
+    <parent link="base_link"/>
+    <child link="imu"/>
+  </joint>
+
+  <link name="lidar">
+    <xacro:sensor_visual/>
+    <xacro:sensor_inertial/>
+  </link>
+  <gazebo reference="lidar">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  
+  <joint name="lidar_joint" type="fixed">
+    <origin xyz="0.533 0 0.342" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="lidar" />
+  </joint>
+	
+  <link name="gps">
+    <xacro:sensor_visual/>
+    <xacro:sensor_inertial/>
+  </link>
+  <gazebo reference="gps">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  
+  <joint name="gps_joint" type="fixed">
+    <origin xyz="0.356 -0.102 0.342" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="gps" />
+  </joint>
+	
+  <!-- hokuyo -->
+  <gazebo reference="lidar">
+    <sensor type="ray" name="head_hokuyo_sensor">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>40</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-2.0</min_angle>
+            <max_angle>2.0</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.10</min>
+          <max>10.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise parameters based on published spec for Hokuyo laser
+               achieving "+-30mm" accuracy at range < 10m.  A mean of 0.0m and
+               stddev of 0.01m will put 99.7% of samples within 0.03m of the true
+               reading. -->
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+        <topicName>/rl500/laser/scan</topicName>
+        <frameName>lidar</frameName>
+      </plugin>
+    </sensor>
+    </gazebo>
+    
+	  <gazebo>
+	    <plugin name="imu_controller" filename="libgazebo_ros_imu.so">
+	      <alwaysOn>true</alwaysOn>
+	      <updateRate>30</updateRate>
+	      <bodyName>imu</bodyName>
+	      <topicName>imu/data</topicName>
+        <serviceName>imu/is_calibrated</serviceName>
+	      <gaussianNoise>${0.0017*0.0017}</gaussianNoise>
+        <xyzOffsets>0 0 0</xyzOffsets> 
+        <rpyOffsets>0 0 0</rpyOffsets>
+      </plugin>
+	  </gazebo>
+
+  <gazebo>
+    <plugin name="gps_controller" filename="libhector_gazebo_ros_gps.so">
+      <updateRate>200</updateRate>
+      <robotNamespace>/rl500</robotNamespace>
+      <bodyName>gps</bodyName>
+      <frameId>/map</frameId>
+      <referenceLatitude>33.157589</referenceLatitude>
+      <referenceLongitude>-96.936600</referenceLongitude>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/</robotNamespace>
+    </plugin>
+  </gazebo>
+
+</robot>
+
