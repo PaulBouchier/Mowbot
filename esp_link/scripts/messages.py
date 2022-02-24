@@ -156,9 +156,8 @@ class TxDriveMotorsRqst:
             rospy.logwarn("TxDriveMotorsRqst request overrun, dropping request")
             return
 
-        # mutex not required since GIL prevents more than one thread from running at a time
-        self.linear_vel = linear_vel
-        self.angular_vel = angular_vel
+        self.linear_vel = cmd_vel.linear.x
+        self.angular_vel = cmd_vel.angular.z
         self.posted_seq = self.seq
         self.seq += 1
         self.lastRqstTime = time()
