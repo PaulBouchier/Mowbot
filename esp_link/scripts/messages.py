@@ -119,12 +119,15 @@ class TxDriveMotorsRqst:
     def __init__(self, link):
         self.link = link
         self.posted = False
-        self.left_drive_pct = 0
-        self.right_drive_pct = 0
+        self.linear_vel = 0.0
+        self.angular_vel = 0.0
         self.lastRqstTime = time()
+        self.seq = 0    # incrementing sequence # enables detecting dropped messages
+        self.posted_seq = 0
         rospy.Subscriber("/cmd_vel", Twist, self.callback, queue_size=1)
 
-    def callback(self, cmd_vel):
+    def unused(self):
+        # This unused method is to hold conversion algorithm from  m/s & rad/s to left/right percent
         """ Transform robot m/sec, rad/sec into left/right wheel speeds in m/s """
         vel = cmd_vel.linear.x
         delta_vel = cmd_vel.angular.z * (BASE_WIDTH / 2.0)
@@ -143,27 +146,31 @@ class TxDriveMotorsRqst:
             1.0,
             "cmd_vel (linear/ang): {:.2f}, {:.2f} produced wheel_speeds (left/right): {:.2f} {:.2f}, drive pct: {} {}".format(
             cmd_vel.linear.x, cmd_vel.angular.z, wheel_speeds[0], wheel_speeds[1], left_wheel_pct, right_wheel_pct))
+
+    def callback(self, cmd_vel):
+        # drop requests received less than 50ms since the last one
         if ((time() - self.lastRqstTime) < 0.05):
             # rospy.logwarn("Dropped too-soon motors rqst")
             return
-        self.post(left_wheel_pct, right_wheel_pct)
-        self.lastRqstTime = time()
-
-
-    def post(self, left_drive_pct, right_drive_pct):
-        self.left_drive_pct = left_drive_pct
-        self.right_drive_pct = right_drive_pct
         if self.posted:
             rospy.logwarn("TxDriveMotorsRqst request overrun, dropping request")
             return
-        # rospy.logdebug ("speed_rqst posted: left: {} right: {}".format(self.left_drive_pct, self.right_drive_pct))
+
+        # mutex not required since GIL prevents more than one thread from running at a time
+        self.linear_vel = linear_vel
+        self.angular_vel = angular_vel
+        self.posted_seq = self.seq
+        self.seq += 1
+        self.lastRqstTime = time()
         self.posted = True
     
     def send_posted(self):
         if not self.posted:
             return
-        send_size = self.link.tx_obj(self.left_drive_pct, val_type_override='b')
-        send_size = self.link.tx_obj(self.right_drive_pct, start_pos=send_size, val_type_override='b')
+        # send_size = self.link.tx_obj(self.left_drive_pct, val_type_override='b')
+        send_size = self.link.tx_obj(self.posted_seq)
+        send_size = self.link.tx_obj(self.linear_vel, start_pos=send_size)
+        send_size = self.link.tx_obj(self.angular_vel, start_pos=send_size)
         self.link.send(send_size, 1)
         self.posted = False
 
