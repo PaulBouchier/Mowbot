@@ -164,7 +164,6 @@ class RxOdometry:
         self.joint_state.header.stamp = rospy.Time.now()
         self.joint_state.header.seq = self.ros_odom_seq
         self.joint_pub.publish(self.joint_state)
-        self.ros_odom_seq += 1
 
         # publish nav_data
         self.nav_data.Header.frame_id = 'odom'
@@ -178,6 +177,11 @@ class RxOdometry:
         self.nav_data.right_speed = right_speed
         self.nav_data.left_encoder_cnt = left_enc_cnt
         self.nav_data.right_encoder_cnt = right_enc_cnt
+
+        self.nav_data.Header.seq = self.ros_odom_seq
+        self.nav_data.Header.stamp = rospy.Time.now()
+        self.nav_data_pub.publish(self.nav_data)
+        self.ros_odom_seq += 1
 
         # print odometry data to logs now and then
         self.log_cnt += 1
