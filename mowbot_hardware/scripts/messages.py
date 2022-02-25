@@ -150,7 +150,7 @@ class RxOdometry:
                                         self.odom.pose.pose.position.y,
                                         self.odom.pose.pose.position.z), 
                     (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
-                    rospy.Time(),
+                    rospy.Time.now(),
                     "base_link",
                     self.tf_frame )
 
