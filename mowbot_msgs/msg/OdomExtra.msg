@@ -1,4 +1,4 @@
-# This message is used to publish various odometry-related data items that don't belong is Odometry
+# This message is used to publish various odometry-related data items that don't belong in Odometry
 Header Header
 geometry_msgs/Point position          # x, y, z in meters
 float32 heading         # heading in radians, increases counterclockwise from x (East)
