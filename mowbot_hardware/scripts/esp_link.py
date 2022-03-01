@@ -4,10 +4,8 @@ import sys
 import rospy
 from pySerialTransfer import pySerialTransfer as txfer
 from messages import TxPing, TxDriveMotorsRqst, RxPong, RxOdometry, RxLog
-
-# import a module that will hold objects to be accessed from any module
-sys.path.append('.')
-#import config
+from dynamic_reconfigure.server import Server
+from mowbot_hardware.cfg import MowbotConfig
 
 # initialize link
 def init_link(port_name):
@@ -54,11 +52,29 @@ def drive_motors_callback(event):
     tx_drive_motors_rqst.post(speed[0], speed[1])
     print('Sending motors')
 
+pilink_log_lvl = 4
+rl500_log_lvl = 4
+odom_log_lvl = 4
+use_pid = False
+pid_p = 1.0
+pid_i = 1.0
+pid_d = 1.0
+esp_reboot = False
+
+def reconfig_callback(config, level):
+    rospy.loginfo('Reconfig log levels: pilink: {pilink_log_lvl}, rl500: {rl500_log_lvl}, odom: {odom_log_lvl}'.format(**config))
+    rospy.loginfo('Reconfig PID: use_pid: {use_pid}, prop gain: {pid_p}, integral: {pid_i}, derivative: {pid_d}'.format(**config))
+    rospy.loginfo('Reconfig ESP32: reboot: {esp_reboot}'.format(**config))
+    return config
+
 if __name__ == '__main__':
     rospy.init_node('esp_link', disable_signals=True)
     #esp_port_name = rospy.get_param('~esp_port_name', "/dev/ttyUSB0")
     esp_port_name = rospy.get_param('~esp_port_name', "/dev/ttyAMA1")
     rospy.loginfo("esp_link using serial port: {}".format(esp_port_name))
+
+    # configure dynamic reconfigure
+    srv = Server(MowbotConfig, reconfig_callback)
 
     rospy.Timer(rospy.Duration(5.0), ping_callback)
     #rospy.Timer(rospy.Duration(0.5), drive_motors_callback)

@@ -197,19 +197,27 @@ class RxOdometry:
 class RxLog:
     def __init__(self, link):
         self.link = link
+        self.last_seq = 0
 
     def handle_log(self):
         log_length = self.link.bytesRead
 
-        # get the log timestamp
+        # get the log sequence # & timestamp
         offset = 0
-        timestamp = self.link.rx_obj(obj_type='i', obj_byte_size=4)
+        seq = self.link.rx_obj(obj_type='i', start_pos=offset, obj_byte_size=4)
+        if seq != (self.last_seq +1):
+            rospy.logerr('Detected dropped log msg; sequence #: {}, expected {}'.format(seq, self.last_seq))
+        self.last_seq = seq
+        offset += 4
+
+        timestamp = self.link.rx_obj(obj_type='i', start_pos=offset, obj_byte_size=4)
+        offset += 4
 
         # get the log msg, offset 4 bytes from beginning (after timestamp)
-        offset += 4
         log_msg = ''
         for i in range(log_length - offset):
-            log_msg += (self.link.rx_obj(obj_type='c', start_pos=i+offset)).decode('utf-8')
+            log_msg += (self.link.rx_obj(obj_type='c', start_pos=offset)).decode('utf-8')
+            offset += 1
         
         # publish the log as a ros log
         timestamp_sec = float(timestamp) / 1000.0
