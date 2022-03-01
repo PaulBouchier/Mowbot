@@ -76,9 +76,9 @@ class RxOdometry:
         self.joint_pub = rospy.Publisher('wheel_joints_state', JointState, queue_size=1)
         self.joint_state = JointState(name=['left_wheel_joint', 'right_wheel_joint'])
 
-        # configure nav_data publishing
-        self.nav_data_pub = rospy.Publisher('nav_data', NavData, queue_size=1)
-        self.nav_data = NavData()
+        # configure odom_extra publishing
+        self.odom_extra_pub = rospy.Publisher('odom_extra', OdomExtra, queue_size=1)
+        self.odom_extra = OdomExtra()
 
         self.ros_odom_seq = 0
         self.last_esp_seq = 0
@@ -165,22 +165,22 @@ class RxOdometry:
         self.joint_state.header.seq = self.ros_odom_seq
         self.joint_pub.publish(self.joint_state)
 
-        # publish nav_data
-        self.nav_data.Header.frame_id = 'odom'
-        self.nav_data.position.x = self.odom.pose.pose.position.x
-        self.nav_data.position.y = self.odom.pose.pose.position.y
-        self.nav_data.heading = heading_rad
-        self.nav_data.linear_speed = linear_speed
-        self.nav_data.angular_speed = self.odom.twist.twist.angular.z
-        self.nav_data.odometer = odometer
-        self.nav_data.left_speed = left_speed
-        self.nav_data.right_speed = right_speed
-        self.nav_data.left_encoder_cnt = left_enc_cnt
-        self.nav_data.right_encoder_cnt = right_enc_cnt
+        # publish odom_extra
+        self.odom_extra.Header.frame_id = 'odom'
+        self.odom_extra.position.x = self.odom.pose.pose.position.x
+        self.odom_extra.position.y = self.odom.pose.pose.position.y
+        self.odom_extra.heading = heading_rad
+        self.odom_extra.linear_speed = linear_speed
+        self.odom_extra.angular_speed = self.odom.twist.twist.angular.z
+        self.odom_extra.odometer = odometer
+        self.odom_extra.left_speed = left_speed
+        self.odom_extra.right_speed = right_speed
+        self.odom_extra.left_encoder_cnt = left_enc_cnt
+        self.odom_extra.right_encoder_cnt = right_enc_cnt
 
-        self.nav_data.Header.seq = self.ros_odom_seq
-        self.nav_data.Header.stamp = rospy.Time.now()
-        self.nav_data_pub.publish(self.nav_data)
+        self.odom_extra.Header.seq = self.ros_odom_seq
+        self.odom_extra.Header.stamp = rospy.Time.now()
+        self.odom_extra_pub.publish(self.odom_extra)
         self.ros_odom_seq += 1
 
         # print odometry data to logs now and then
