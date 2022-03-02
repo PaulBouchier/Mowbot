@@ -8,8 +8,14 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Quaternion
-from mowbot_msgs.msg import NavData
+from mowbot_msgs.msg import OdomExtra
 from tf.broadcaster import TransformBroadcaster
+
+# Tx Packet IDs
+pktIdPing = 0
+pktIdDriveMotorsRqst = 1
+pktIdLogLevel = 2
+pktIdReboot = 3
 
 MAX_SPEED = 0.47      # meters/second
 BASE_WIDTH = 0.424    # meters, 16.675"
@@ -28,7 +34,7 @@ class TxPing:
             return
         ping_type = '\x00'
         send_size = self.link.tx_obj(ping_type)
-        self.link.send(send_size, 0)
+        self.link.send(send_size, pktIdPing)
         self.posted = False
 
 class RxPong:
@@ -95,6 +101,9 @@ class RxOdometry:
         # populate odom from OdometryMsg
         # member seq
         sequence = self.link.rx_obj(obj_type='I', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        # member espTimestamp
+        espTimestamp = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
         # member poseX_m
         self.odom.pose.pose.position.x = self.link.rx_obj(obj_type='f', start_pos=rec_size)
@@ -265,6 +274,43 @@ class TxDriveMotorsRqst:
         send_size = self.link.tx_obj(self.posted_seq)
         send_size = self.link.tx_obj(self.linear_vel, start_pos=send_size)
         send_size = self.link.tx_obj(self.angular_vel, start_pos=send_size)
-        self.link.send(send_size, 1)
+        self.link.send(send_size, pktIdDriveMotorsRqst)
         self.posted = False
 
+class TxLogLevel:
+    def __init__(self, link):
+        self.link = link
+        self.posted = False
+        self.pilink_log_level = 4
+        self.rl500_log_level = 4
+        self.odom_log_level = 4
+
+    def post(self, pilink_log_level, rl500_log_level, odom_log_level):
+        self.pilink_log_level = pilink_log_level
+        self.rl500_log_level = rl500_log_level
+        self.odom_log_level = odom_log_level
+        self.posted = True
+    
+    def send_posted(self):
+        if not self.posted:
+            return
+        send_size = self.link.tx_obj(self.pilink_log_level)
+        send_size = self.link.tx_obj(self.rl500_log_level, start_pos=send_size)
+        send_size = self.link.tx_obj(self.odom_log_level, start_pos=send_size)
+
+        self.link.send(send_size, pktIdLogLevel)
+        self.posted = False
+
+class TxReboot:
+    def __init__(self, link):
+        self.link = link
+        self.posted = False
+
+    def post(self):
+        self.posted = True
+    
+    def send_posted(self):
+        if not self.posted:
+            return
+        self.link.send(0, pktIdReboot)
+        self.posted = False

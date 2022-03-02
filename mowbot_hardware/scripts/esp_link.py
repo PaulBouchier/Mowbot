@@ -3,7 +3,7 @@ import time
 import sys
 import rospy
 from pySerialTransfer import pySerialTransfer as txfer
-from messages import TxPing, TxDriveMotorsRqst, RxPong, RxOdometry, RxLog
+from messages import TxPing, TxDriveMotorsRqst, RxPong, RxOdometry, RxLog, TxLogLevel, TxReboot
 from dynamic_reconfigure.server import Server
 from mowbot_hardware.cfg import MowbotConfig
 
@@ -20,12 +20,14 @@ def init_link(port_name):
 
 # initialize messages
 def init_msgs(link):
-    global tx_ping, rx_pong, rx_odometry, tx_drive_motors_rqst, rx_log
+    global tx_ping, rx_pong, rx_odometry, tx_drive_motors_rqst, tx_log_level, tx_reboot
     tx_ping = TxPing(link)
     rx_pong = RxPong(link)
     rx_odometry = RxOdometry(link)
     tx_drive_motors_rqst = TxDriveMotorsRqst(link)
     rx_log = RxLog(link)
+    tx_log_level = TxLogLevel(link)
+    tx_reboot = TxReboot(link)
 
 def tick_link():
     start_time = time.time()
@@ -102,6 +104,10 @@ if __name__ == '__main__':
             tx_ping.send_posted()
             tick_link()
             tx_drive_motors_rqst.send_posted()
+            tick_link()
+            tx_log_level.send_posted()
+            tick_link()
+            tx_reboot.send_posted()
             time.sleep(0.01)
     
     except KeyboardInterrupt:
