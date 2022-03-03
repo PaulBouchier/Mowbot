@@ -1,5 +1,5 @@
 # This message is used to publish various odometry-related data items that don't belong in Odometry
-Header Header
+Header header
 geometry_msgs/Point position          # x, y, z in meters
 float32 heading         # heading in radians, increases counterclockwise from x (East)
 float32 linear_speed    # speed in the forward direction, m/s

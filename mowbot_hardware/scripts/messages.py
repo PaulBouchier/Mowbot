@@ -8,7 +8,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Quaternion
-from mowbot_msgs.msg import OdomExtra
+from mowbot_msgs.msg import OdomExtra, PlatformData
 from tf.broadcaster import TransformBroadcaster
 
 # Tx Packet IDs
@@ -21,32 +21,42 @@ MAX_SPEED = 0.47      # meters/second
 BASE_WIDTH = 0.424    # meters, 16.675"
 WHEEL_RADIUS = 0.127  # meters
 
-class TxPing:
+class RxLog:
     def __init__(self, link):
         self.link = link
-        self.posted = False
+        self.last_seq = 0
 
-    def post(self):
-        self.posted = True
-    
-    def send_posted(self):
-        if not self.posted:
-            return
-        ping_type = '\x00'
-        send_size = self.link.tx_obj(ping_type)
-        self.link.send(send_size, pktIdPing)
-        self.posted = False
+    def handle_log(self):
+        log_length = self.link.bytesRead
 
-class RxPong:
-    def __init__(self, link):
-        self.link = link
+        # get the log sequence # & timestamp
+        offset = 0
+        seq = self.link.rx_obj(obj_type='i', start_pos=offset, obj_byte_size=4)
+        if seq != (self.last_seq +1):
+            rospy.logerr('RxLog detected dropped log msg; sequence #: {}, expected {}'.format(seq, self.last_seq))
+        self.last_seq = seq
+        offset += 4
 
-    def handle_pong(self):
-        self.ping_type = b'\x00'
-        self.timestamp = 0
-        self.timestamp = self.link.rx_obj(obj_type=type(self.timestamp), obj_byte_size=4, list_format='i')
-        self.pong_type = self.link.rx_obj(obj_type=type(self.ping_type), obj_byte_size=1, list_format='b')
-        rospy.loginfo ("pong type {} timestamp: {}".format(self.pong_type, self.timestamp))
+        timestamp = self.link.rx_obj(obj_type='i', start_pos=offset, obj_byte_size=4)
+        offset += 4
+
+        # get the log msg, offset 4 bytes from beginning (after timestamp)
+        log_msg = ''
+        for i in range(log_length - offset):
+            log_msg += (self.link.rx_obj(obj_type='c', start_pos=offset)).decode('utf-8')
+            offset += 1
+        
+        # publish the log as a ros log
+        timestamp_sec = float(timestamp) / 1000.0
+        level = log_msg[0]
+        {
+            'V': rospy.logdebug,
+            'T': rospy.logdebug,
+            'I': rospy.loginfo,
+            'W': rospy.logwarn,
+            'E': rospy.logerr,
+            'F': rospy.logfatal,
+        }[level](log_msg + " @ {:.3f}".format(timestamp_sec) + "s")
 
 class RxOdometry:
     def __init__(self, link):
@@ -175,7 +185,7 @@ class RxOdometry:
         self.joint_pub.publish(self.joint_state)
 
         # publish odom_extra
-        self.odom_extra.Header.frame_id = 'odom'
+        self.odom_extra.header.frame_id = 'odom'
         self.odom_extra.position.x = self.odom.pose.pose.position.x
         self.odom_extra.position.y = self.odom.pose.pose.position.y
         self.odom_extra.heading = heading_rad
@@ -187,8 +197,8 @@ class RxOdometry:
         self.odom_extra.left_encoder_cnt = left_enc_cnt
         self.odom_extra.right_encoder_cnt = right_enc_cnt
 
-        self.odom_extra.Header.seq = self.ros_odom_seq
-        self.odom_extra.Header.stamp = rospy.Time.now()
+        self.odom_extra.header.seq = self.ros_odom_seq
+        self.odom_extra.header.stamp = rospy.Time.now()
         self.odom_extra_pub.publish(self.odom_extra)
         self.ros_odom_seq += 1
 
@@ -203,42 +213,56 @@ class RxOdometry:
             rospy.logerr("Detected {} dropped odom messages".format(sequence - self.last_esp_seq + 1))
         self.last_esp_seq = sequence
 
-class RxLog:
+class RxPlatformData:
     def __init__(self, link):
         self.link = link
-        self.last_seq = 0
 
-    def handle_log(self):
-        log_length = self.link.bytesRead
+        # configure platform_data publishing
+        self.platform_data_pub = rospy.Publisher('platform_data', PlatformData, queue_size=1)
+        self.platform_data = PlatformData()
+        self.last_platform_data_seq = 0
 
-        # get the log sequence # & timestamp
-        offset = 0
-        seq = self.link.rx_obj(obj_type='i', start_pos=offset, obj_byte_size=4)
-        if seq != (self.last_seq +1):
-            rospy.logerr('Detected dropped log msg; sequence #: {}, expected {}'.format(seq, self.last_seq))
-        self.last_seq = seq
-        offset += 4
+    def handle_platform_data(self):
+        rospy.logdebug('PlatformData callback got msg length: {}'.format(self.link.bytesRead))
+        rec_size = 0
 
-        timestamp = self.link.rx_obj(obj_type='i', start_pos=offset, obj_byte_size=4)
-        offset += 4
+        # populate platform_ddata from PlatformDataMsg
+        # member seq
+        sequence = self.link.rx_obj(obj_type='I', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        self.platform_data.header.seq = sequence
+        if sequence != self.last_platform_data_seq:
+            rospy.logerr('RxPlatformData detected lost msgs, seq: {}, expected {}'.format(sequence, self.last_platform_data_seq))
+        self.last_platform_data_seq = sequence
+        # member espTimestamp
+        espTimestamp = self.link.rx_obj(obj_type='I', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        # member leftMps
+        self.platform_data.leftMps = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
+        # member rightMps
+        self.platform_data.rightMps = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
+        # member leftPct
+        self.platform_data.leftPct = self.link.rx_obj(obj_type='I', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        # member rightPct
+        self.platform_data.rightPct = self.link.rx_obj(obj_type='I', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
 
-        # get the log msg, offset 4 bytes from beginning (after timestamp)
-        log_msg = ''
-        for i in range(log_length - offset):
-            log_msg += (self.link.rx_obj(obj_type='c', start_pos=offset)).decode('utf-8')
-            offset += 1
-        
-        # publish the log as a ros log
-        timestamp_sec = float(timestamp) / 1000.0
-        level = log_msg[0]
-        {
-            'V': rospy.logdebug,
-            'T': rospy.logdebug,
-            'I': rospy.loginfo,
-            'W': rospy.logwarn,
-            'E': rospy.logerr,
-            'F': rospy.logfatal,
-        }[level](log_msg + " @ {:.3f}".format(timestamp_sec) + "s")
+        self.platform_data.header.stamp = rospy.Time.now()
+        self.platform_data_pub.publish(self.platform_data)
+
+class RxPong:
+    def __init__(self, link):
+        self.link = link
+
+    def handle_pong(self):
+        self.ping_type = b'\x00'
+        self.timestamp = 0
+        self.timestamp = self.link.rx_obj(obj_type=type(self.timestamp), obj_byte_size=4, list_format='i')
+        self.pong_type = self.link.rx_obj(obj_type=type(self.ping_type), obj_byte_size=1, list_format='b')
+        # rospy.loginfo ("pong type {} timestamp: {}".format(self.pong_type, self.timestamp))
 
 class TxDriveMotorsRqst:
     def __init__(self, link):
@@ -299,6 +323,22 @@ class TxLogLevel:
         send_size = self.link.tx_obj(self.odom_log_level, start_pos=send_size)
 
         self.link.send(send_size, pktIdLogLevel)
+        self.posted = False
+
+class TxPing:
+    def __init__(self, link):
+        self.link = link
+        self.posted = False
+
+    def post(self):
+        self.posted = True
+    
+    def send_posted(self):
+        if not self.posted:
+            return
+        ping_type = '\x00'
+        send_size = self.link.tx_obj(ping_type)
+        self.link.send(send_size, pktIdPing)
         self.posted = False
 
 class TxReboot:

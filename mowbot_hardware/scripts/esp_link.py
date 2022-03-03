@@ -3,7 +3,8 @@ import time
 import sys
 import rospy
 from pySerialTransfer import pySerialTransfer as txfer
-from messages import TxPing, TxDriveMotorsRqst, RxPong, RxOdometry, RxLog, TxLogLevel, TxReboot
+from messages import RxLog, RxOdometry, RxPlatformData, RxPong, \
+     TxDriveMotorsRqst, TxLogLevel, TxPing, TxReboot
 from dynamic_reconfigure.server import Server
 from mowbot_hardware.cfg import MowbotConfig
 
@@ -20,13 +21,17 @@ def init_link(port_name):
 
 # initialize messages
 def init_msgs(link):
-    global tx_ping, rx_pong, rx_odometry, tx_drive_motors_rqst, tx_log_level, tx_reboot
-    tx_ping = TxPing(link)
-    rx_pong = RxPong(link)
-    rx_odometry = RxOdometry(link)
-    tx_drive_motors_rqst = TxDriveMotorsRqst(link)
+    global rx_log, rx_odometry, rx_platform_data, rx_pong, \
+        tx_drive_motors_rqst, tx_log_level, tx_ping, tx_reboot 
+    # instantiate rx & tx message handlers
     rx_log = RxLog(link)
+    rx_odometry = RxOdometry(link)
+    rx_platform_data = RxPlatformData(link)
+    rx_pong = RxPong(link)
+
+    tx_drive_motors_rqst = TxDriveMotorsRqst(link)
     tx_log_level = TxLogLevel(link)
+    tx_ping = TxPing(link)
     tx_reboot = TxReboot(link)
 
 def tick_link():
@@ -45,7 +50,6 @@ def tick_link():
             print('ERROR: {}'.format(link.status))
 
 def ping_callback(event):
-    print('Sending ping')
     tx_ping.post()
 
 def drive_motors_callback(event):
@@ -92,7 +96,10 @@ if __name__ == '__main__':
         you want to call the function rx_pong() when you parse a packet with an ID of 0, you
         would write the callback list with "rx_pong" being in the 0th place of the list:
         '''
-        callback_list = [ rx_pong.handle_pong, rx_odometry.handle_odometry, rx_log.handle_log ]
+        callback_list = [ rx_pong.handle_pong, \
+                        rx_odometry.handle_odometry, \
+                        rx_log.handle_log, \
+                        rx_platform_data.handle_platform_data ]
 
         link.set_callbacks(callback_list)
         link.open()
