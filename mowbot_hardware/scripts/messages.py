@@ -95,8 +95,6 @@ class RxOdometry:
         # configure odom_extra publishing
         self.odom_extra_pub = rospy.Publisher('odom_extra', OdomExtra, queue_size=1)
         self.odom_extra = OdomExtra()
-
-        self.ros_odom_seq = 0
         self.last_esp_seq = 0
 
         self.log_rate = 1000    # print a log message every log_rate OdometryMsg's
@@ -104,7 +102,6 @@ class RxOdometry:
 
     def handle_odometry(self):
         # rospy.logdebug ('Odometry callback got msg length: {}'.format(self.link.bytesRead))
-        self.odom.header.seq = self.ros_odom_seq
         self.odom.header.stamp = rospy.Time.now()
         rec_size = 0
 
@@ -112,6 +109,7 @@ class RxOdometry:
         # member seq
         sequence = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        self.odom.header.seq = sequence
         # member espTimestamp
         espTimestamp = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
@@ -181,7 +179,7 @@ class RxOdometry:
         # publish joint states
         self.joint_state.position = [left_wheel_angle_rad, right_wheel_angle_rad]
         self.joint_state.header.stamp = rospy.Time.now()
-        self.joint_state.header.seq = self.ros_odom_seq
+        self.joint_state.header.seq = sequence
         self.joint_pub.publish(self.joint_state)
 
         # publish odom_extra
@@ -197,10 +195,9 @@ class RxOdometry:
         self.odom_extra.left_encoder_cnt = left_enc_cnt
         self.odom_extra.right_encoder_cnt = right_enc_cnt
 
-        self.odom_extra.header.seq = self.ros_odom_seq
+        self.odom_extra.header.seq = sequence
         self.odom_extra.header.stamp = rospy.Time.now()
         self.odom_extra_pub.publish(self.odom_extra)
-        self.ros_odom_seq += 1
 
         # print odometry data to logs now and then
         self.log_cnt += 1
@@ -211,7 +208,7 @@ class RxOdometry:
             rospy.logdebug("left_enc_cnt: {}, right_enc_cnt: {}".format(left_enc_cnt, right_enc_cnt))
 
         if sequence != (self.last_esp_seq + 1):
-            rospy.logerr("Detected {} dropped odom messages".format(sequence - self.last_esp_seq + 1))
+            rospy.logerr("RxOdometry detected {} lost msgs".format(sequence - self.last_esp_seq + 1))
         self.last_esp_seq = sequence
 
 class RxPlatformData:
@@ -224,7 +221,7 @@ class RxPlatformData:
         self.last_platform_data_seq = 0
 
     def handle_platform_data(self):
-        rospy.logdebug('PlatformData callback got msg length: {}'.format(self.link.bytesRead))
+        # rospy.logdebug('PlatformData callback got msg length: {}'.format(self.link.bytesRead))
         rec_size = 0
 
         # populate platform_ddata from PlatformDataMsg
@@ -255,7 +252,7 @@ class RxPlatformData:
 
         self.platform_data.header.stamp = rospy.Time.now()
         if (abs(leftPct) > 100 or abs(leftPct) > 100):
-            rospy.logerr('size error: leftPct {} rightPct {}'.format(self.platform_data.leftPct, self.platform_data.rightPct))
+            rospy.logerr('RxPlatformData magnitude error: leftPct {} rightPct {}'.format(self.platform_data.leftPct, self.platform_data.rightPct))
         self.platform_data_pub.publish(self.platform_data)
 
 class RxPong:
