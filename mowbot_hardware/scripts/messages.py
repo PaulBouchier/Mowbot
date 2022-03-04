@@ -33,7 +33,7 @@ class RxLog:
         offset = 0
         seq = self.link.rx_obj(obj_type='i', start_pos=offset, obj_byte_size=4)
         if seq != (self.last_seq +1):
-            rospy.logerr('RxLog detected dropped log msg; sequence #: {}, expected {}'.format(seq, self.last_seq))
+            rospy.logerr('RxLog detected dropped log msg; sequence #: {}, expected {}'.format(seq, self.last_seq+1))
         self.last_seq = seq
         offset += 4
 
@@ -146,11 +146,11 @@ class RxOdometry:
         right_speed = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
         # member leftEncoderCount
-        left_enc_cnt = self.link.rx_obj(obj_type='I', start_pos=rec_size)
-        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        left_enc_cnt = self.link.rx_obj(obj_type='i', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
         # member rightEncoderCount
-        right_enc_cnt = self.link.rx_obj(obj_type='I', start_pos=rec_size)
-        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        right_enc_cnt = self.link.rx_obj(obj_type='i', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
         #member leftWheelAngleRad
         left_wheel_angle_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
@@ -208,6 +208,7 @@ class RxOdometry:
             self.log_cnt = 0
             rospy.loginfo("poseX: {:.2f} poseY: {:.2f} heading: {:.2f} speed {:.2f}, odom: {:.2f}".format(
                 self.odom.pose.pose.position.x, self.odom.pose.pose.position.y, heading_rad, linear_speed, odometer))
+            rospy.logdebug("left_enc_cnt: {}, right_enc_cnt: {}".format(left_enc_cnt, right_enc_cnt))
 
         if sequence != (self.last_esp_seq + 1):
             rospy.logerr("Detected {} dropped odom messages".format(sequence - self.last_esp_seq + 1))
@@ -244,13 +245,17 @@ class RxPlatformData:
         self.platform_data.rightMps = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
         # member leftPct
-        self.platform_data.leftPct = self.link.rx_obj(obj_type='I', start_pos=rec_size)
-        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        leftPct = self.link.rx_obj(obj_type='i', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
+        self.platform_data.leftPct = leftPct
         # member rightPct
-        self.platform_data.rightPct = self.link.rx_obj(obj_type='I', start_pos=rec_size)
-        rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
+        rightPct = self.link.rx_obj(obj_type='i', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
+        self.platform_data.rightPct = rightPct
 
         self.platform_data.header.stamp = rospy.Time.now()
+        if (abs(leftPct) > 100 or abs(leftPct) > 100):
+            rospy.logerr('size error: leftPct {} rightPct {}'.format(self.platform_data.leftPct, self.platform_data.rightPct))
         self.platform_data_pub.publish(self.platform_data)
 
 class RxPong:
