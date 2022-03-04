@@ -52,12 +52,6 @@ def tick_link():
 def ping_callback(event):
     tx_ping.post()
 
-def drive_motors_callback(event):
-    # OBSOLETE - unused
-    speed = [50, 50]
-    tx_drive_motors_rqst.post(speed[0], speed[1])
-    print('Sending motors')
-
 pilink_log_lvl = 4
 rl500_log_lvl = 4
 odom_log_lvl = 4
@@ -83,7 +77,6 @@ if __name__ == '__main__':
     srv = Server(MowbotConfig, reconfig_callback)
 
     rospy.Timer(rospy.Duration(5.0), ping_callback)
-    #rospy.Timer(rospy.Duration(0.5), drive_motors_callback)
 
     try:
         # initialize pySerialTransfer
