@@ -205,7 +205,6 @@ class RxOdometry:
             self.log_cnt = 0
             rospy.loginfo("poseX: {:.2f} poseY: {:.2f} heading: {:.2f} speed {:.2f}, odom: {:.2f}".format(
                 self.odom.pose.pose.position.x, self.odom.pose.pose.position.y, heading_rad, linear_speed, odometer))
-            rospy.logdebug("left_enc_cnt: {}, right_enc_cnt: {}".format(left_enc_cnt, right_enc_cnt))
 
         if sequence != (self.last_esp_seq + 1):
             rospy.logerr("RxOdometry detected {} lost msgs".format(sequence - self.last_esp_seq + 1))
@@ -349,10 +348,13 @@ class TxReboot:
         self.posted = False
 
     def post(self):
+        rospy.loginfo('TxReboot sending reboot request to ESP32')
         self.posted = True
     
     def send_posted(self):
         if not self.posted:
             return
-        self.link.send(0, pktIdReboot)
+        dummy_data = 0
+        send_size = self.link.tx_obj(dummy_data)
+        self.link.send(send_size, pktIdReboot)
         self.posted = False

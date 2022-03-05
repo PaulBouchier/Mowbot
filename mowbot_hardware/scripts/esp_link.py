@@ -62,12 +62,12 @@ pid_d = 1.0
 esp_reboot = False
 
 def reconfig_callback(config, level):
-    rospy.loginfo('Reconfig log levels: pilink: {pilink_log_lvl}, rl500: {rl500_log_lvl}, odom: {odom_log_lvl}'.format(**config))
-    rospy.loginfo('Reconfig PID: use_pid: {use_pid}, prop gain: {pid_p}, integral: {pid_i}, derivative: {pid_d}'.format(**config))
-    rospy.loginfo('Reconfig ESP32: reboot: {esp_reboot}'.format(**config))
+    rospy.logdebug('Reconfig log levels: pilink: {pilink_log_lvl}, rl500: {rl500_log_lvl}, odom: {odom_log_lvl}'.format(**config))
+    rospy.logdebug('Reconfig PID: use_pid: {use_pid}, prop gain: {pid_p}, integral: {pid_i}, derivative: {pid_d}'.format(**config))
+    rospy.logdebug('Reconfig ESP32: reboot: {esp_reboot}'.format(**config))
 
     if config['esp_reboot']:
-        print ('Rebooting ESP32')
+        tx_reboot.post()
         config['esp_reboot'] = False
 
     return config
