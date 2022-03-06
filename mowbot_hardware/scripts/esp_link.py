@@ -70,6 +70,10 @@ def reconfig_callback(config, level):
         tx_reboot.post()
         config['esp_reboot'] = False
 
+    if config['rl500_bit_mode']:
+        tx_bit_mode.post()
+        config['rl500_bit_mode'] = False
+
     return config
 
 if __name__ == '__main__':

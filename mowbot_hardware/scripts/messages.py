@@ -16,6 +16,7 @@ pktIdPing = 0
 pktIdDriveMotorsRqst = 1
 pktIdLogLevel = 2
 pktIdReboot = 3
+pktIdBITMode = 4
 
 MAX_SPEED = 0.47      # meters/second
 BASE_WIDTH = 0.424    # meters, 16.675"
@@ -270,6 +271,23 @@ class RxPong:
         self.timestamp = self.link.rx_obj(obj_type=type(self.timestamp), obj_byte_size=4, list_format='i')
         self.pong_type = self.link.rx_obj(obj_type=type(self.ping_type), obj_byte_size=1, list_format='b')
         # rospy.loginfo ("pong type {} timestamp: {}".format(self.pong_type, self.timestamp))
+
+class TxBITMode:
+    def __init__(self, link):
+        self.link = link
+        self.posted = False
+
+    def post(self):
+        rospy.loginfo('TxBITMode sending BIT Mode request to ESP32')
+        self.posted = True
+    
+    def send_posted(self):
+        if not self.posted:
+            return
+        dummy_data = 0
+        send_size = self.link.tx_obj(dummy_data)
+        self.link.send(send_size, pktIdBITMode)
+        self.posted = False
 
 class TxDriveMotorsRqst:
     def __init__(self, link):
