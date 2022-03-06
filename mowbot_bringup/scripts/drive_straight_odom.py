@@ -72,9 +72,11 @@ def shutdown():
     rospy.sleep(1)
 
 def odom_callback(odom_extra_msg):
+    global odom_extra
     odom_extra = odom_extra_msg
 
 def platform_callback(platform_data_msg):
+    global platform_data
     platform_data = platform_data_msg
 
 def usage():

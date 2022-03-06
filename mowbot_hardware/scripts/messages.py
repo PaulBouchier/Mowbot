@@ -248,6 +248,12 @@ class RxPlatformData:
         rightPct = self.link.rx_obj(obj_type='i', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
         self.platform_data.rightPct = rightPct
+        # member commandedLinear
+        self.platform_data.commandedLinear = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
+        # member commandedAngular
+        self.platform_data.commandedAngular = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
 
         self.platform_data.header.stamp = rospy.Time.now()
         if (abs(leftPct) > 100 or abs(leftPct) > 100):
