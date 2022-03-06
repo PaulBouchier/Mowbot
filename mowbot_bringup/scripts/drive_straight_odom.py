@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import time
 import rospy
 from geometry_msgs.msg import Twist, Point, Quaternion
 from mowbot_msgs.msg import OdomExtra, PlatformData
@@ -11,30 +12,32 @@ loop_rate = 10       # loop rate
 speed = 0.25    # driving speed, fwd or back
 vel_slew_rate = 0.3 / loop_rate  # m/s^2 per loop
 
+odom_extra = OdomExtra()
+platform_data = PlatformData()
+
 class DriveStraight():
-    def __init__(self, distance, cmd_vel):
-        self.distance = distance
+    def __init__(self, cmd_vel):
         self.cmd_vel = cmd_vel      # cmd_vel publisher
-        self.odom_extra = OdomExtra()
-        rospy.Subscriber("/odom_extra", OdomExtra, self.odom_callback, queue_size=1)
-        self.platform_data = PlatformData()
-        rospy.Subscriber("/platform_data", PlatformData, self.platform_callback, queue_size=1)
         self.r = rospy.Rate(loop_rate)
         self.r.sleep()      #  wait for /odom_extra to populate odometer
+
+    def parse_argv(self, argv):
+        self.distance = float(argv[0])  # pick off first arg from supplied list
+        return 1
 
     def print(self):
         print('driving straight with odometry for {} m'.format(self.distance))
 
     def run(self):
         self.move_cmd = Twist()
-        self.odometer_goal = self.odom_extra.odometer + self.distance
-        self.odometer_start = self.odom_extra.odometer
-        rospy.loginfo('start odometer: {}, goal: {}'.format(self.odom_extra.odometer, self.odometer_goal))
+        self.odometer_goal = odom_extra.odometer + self.distance
+        self.odometer_start = odom_extra.odometer
+        rospy.loginfo('start odometer: {}, goal: {}'.format(odom_extra.odometer, self.odometer_goal))
 
         # loop sending motion commands until desired distance attained
         while (not rospy.is_shutdown()):
-            if ((self.distance >= 0 and self.odom_extra.odometer >= self.odometer_goal) or \
-                (self.distance < 0 and self.odom_extra.odometer < self.odometer_goal)):
+            if ((self.distance >= 0 and odom_extra.odometer >= self.odometer_goal) or \
+                (self.distance < 0 and odom_extra.odometer < self.odometer_goal)):
                 break
 
             if self.distance >= 0:
@@ -48,16 +51,10 @@ class DriveStraight():
 
         self.cmd_vel.publish(Twist())   # stop the robot
         rospy.sleep(1)
-        rospy.loginfo('traveled: {} m'.format(self.odom_extra.odometer - self.odometer_start))
-
-    def odom_callback(self, odom_extra):
-        self.odom_extra = odom_extra
-
-    def platform_callback(self, platform_data):
-        self.platform_data = platform_data
+        rospy.loginfo('traveled: {} m'.format(odom_extra.odometer - self.odometer_start))
 
     def slew_vel(self, to):
-        last_speed_cmd = (self.platform_data.leftMps + self.platform_data.rightMps) / 2.0
+        last_speed_cmd = (platform_data.leftMps + platform_data.rightMps) / 2.0
         return self.slew(last_speed_cmd, to, vel_slew_rate)
 
     def slew(self, current, to, slew_rate):
@@ -74,6 +71,12 @@ def shutdown():
     cmd_vel.publish(Twist())
     rospy.sleep(1)
 
+def odom_callback(odom_extra_msg):
+    odom_extra = odom_extra_msg
+
+def platform_callback(platform_data_msg):
+    platform_data = platform_data_msg
+
 def usage():
     print('Usage: drive_straight.py <distance> - drive the specified distance forward or backward')
     sys.exit()
@@ -81,19 +84,22 @@ def usage():
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         usage()
+    argv_index = 1
 
-    distance = float(sys.argv[1])
     rospy.init_node('move', anonymous=False)
-
-    # Set rospy to execute a shutdown function when exiting       
-    rospy.on_shutdown(shutdown)
+    rospy.on_shutdown(shutdown)     # Set rospy to execute a shutdown function when exiting
 
     # Publisher to control the robot's speed
     cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
+    # subscribers to robot data
+    rospy.Subscriber("/odom_extra", OdomExtra, odom_callback, queue_size=1)
+    rospy.Subscriber("/platform_data", PlatformData, platform_callback, queue_size=1)
+    time.sleep(0.1)     # wait for data to populate
+
     try:
-        print('driving {} m'.format(distance))
-        m = DriveStraight(distance, cmd_vel)
+        m = DriveStraight(cmd_vel)
+        argv_index += m.parse_argv(sys.argv[argv_index:])
         m.print()
         m.run()
 
