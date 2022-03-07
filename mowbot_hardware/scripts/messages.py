@@ -278,6 +278,8 @@ class TxBITMode:
         self.posted = False
 
     def post(self):
+        if self.posted:
+            rospy.logerr('TxBITMode previously posted rqst still pending sending')
         rospy.loginfo('TxBITMode sending BIT Mode request to ESP32')
         self.posted = True
     
@@ -335,6 +337,8 @@ class TxLogLevel:
         self.odom_log_level = 4
 
     def post(self, pilink_log_level, rl500_log_level, odom_log_level):
+        if self.posted:
+            rospy.logerr('TxLogLevel previously posted rqst still pending sending')
         self.pilink_log_level = pilink_log_level
         self.rl500_log_level = rl500_log_level
         self.odom_log_level = odom_log_level
@@ -356,6 +360,8 @@ class TxPing:
         self.posted = False
 
     def post(self):
+        if self.posted:
+            rospy.logerr('TxPing previously posted rqst still pending sending')
         self.posted = True
     
     def send_posted(self):
@@ -372,6 +378,8 @@ class TxReboot:
         self.posted = False
 
     def post(self):
+        if self.posted:
+            rospy.logerr('TxReboot previously posted rqst still pending sending')
         rospy.loginfo('TxReboot sending reboot request to ESP32')
         self.posted = True
     

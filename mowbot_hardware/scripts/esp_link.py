@@ -4,9 +4,19 @@ import sys
 import rospy
 from pySerialTransfer import pySerialTransfer as txfer
 from messages import RxLog, RxOdometry, RxPlatformData, RxPong, \
-     TxDriveMotorsRqst, TxLogLevel, TxPing, TxReboot
+     TxBITMode, TxDriveMotorsRqst, TxLogLevel, TxPing, TxReboot
 from dynamic_reconfigure.server import Server
 from mowbot_hardware.cfg import MowbotConfig
+
+pilink_log_lvl = 4
+rl500_log_lvl = 4
+odom_log_lvl = 4
+use_pid = False
+pid_p = 1.0
+pid_i = 1.0
+pid_d = 1.0
+rl500_bit_mode = False
+esp_reboot = False
 
 # initialize link
 def init_link(port_name):
@@ -22,13 +32,14 @@ def init_link(port_name):
 # initialize messages
 def init_msgs(link):
     global rx_log, rx_odometry, rx_platform_data, rx_pong, \
-        tx_drive_motors_rqst, tx_log_level, tx_ping, tx_reboot 
+        tx_bit_mode, tx_drive_motors_rqst, tx_log_level, tx_ping, tx_reboot 
     # instantiate rx & tx message handlers
     rx_log = RxLog(link)
     rx_odometry = RxOdometry(link)
     rx_platform_data = RxPlatformData(link)
     rx_pong = RxPong(link)
 
+    tx_bit_mode = TxBITMode(link)
     tx_drive_motors_rqst = TxDriveMotorsRqst(link)
     tx_log_level = TxLogLevel(link)
     tx_ping = TxPing(link)
@@ -52,19 +63,18 @@ def tick_link():
 def ping_callback(event):
     tx_ping.post()
 
-pilink_log_lvl = 4
-rl500_log_lvl = 4
-odom_log_lvl = 4
-use_pid = False
-pid_p = 1.0
-pid_i = 1.0
-pid_d = 1.0
-esp_reboot = False
-
 def reconfig_callback(config, level):
+    global pilink_log_lvl, rl500_log_lvl, odom_log_lvl
+
     rospy.logdebug('Reconfig log levels: pilink: {pilink_log_lvl}, rl500: {rl500_log_lvl}, odom: {odom_log_lvl}'.format(**config))
     rospy.logdebug('Reconfig PID: use_pid: {use_pid}, prop gain: {pid_p}, integral: {pid_i}, derivative: {pid_d}'.format(**config))
-    rospy.logdebug('Reconfig ESP32: reboot: {esp_reboot}'.format(**config))
+    rospy.logdebug('Reconfig ESP32: bit_mode: {rl500_bit_mode}, reboot: {esp_reboot}'.format(**config))
+
+    if config['pilink_log_lvl'] != pilink_log_lvl or config['rl500_log_lvl'] != rl500_log_lvl or config['odom_log_lvl'] != odom_log_lvl:
+        pilink_log_lvl = config['pilink_log_lvl']
+        rl500_log_lvl = config['rl500_log_lvl']
+        odom_log_lvl = config['odom_log_lvl']
+        tx_log_level.post(pilink_log_lvl, rl500_log_lvl, odom_log_lvl)
 
     if config['esp_reboot']:
         tx_reboot.post()
@@ -82,15 +92,15 @@ if __name__ == '__main__':
     esp_port_name = rospy.get_param('~esp_port_name', "/dev/ttyAMA1")
     rospy.loginfo("esp_link using serial port: {}".format(esp_port_name))
 
-    # configure dynamic reconfigure
-    srv = Server(MowbotConfig, reconfig_callback)
-
     rospy.Timer(rospy.Duration(5.0), ping_callback)
 
     try:
         # initialize pySerialTransfer
         init_link(esp_port_name)
         init_msgs(link)
+        # configure dynamic reconfigure
+        srv = Server(MowbotConfig, reconfig_callback)
+
         
         '''
         list of callback functions to be called during tick. The index of the function
@@ -117,6 +127,8 @@ if __name__ == '__main__':
             tx_log_level.send_posted()
             tick_link()
             tx_reboot.send_posted()
+            tick_link()
+            tx_bit_mode.send_posted()
             time.sleep(0.01)
     
     except KeyboardInterrupt:

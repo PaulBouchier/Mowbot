@@ -3,71 +3,41 @@
 import sys
 import time
 import rospy
-import drive_straight_odom
+from geometry_msgs.msg import Twist
+import drive_straight_odom, stop
 from mowbot_msgs.msg import OdomExtra, PlatformData
 
 odom_extra = OdomExtra()
 platform_data = PlatformData()
-argv_pos = 1
-
-class drive_straight:
-    def __init__(self, distance):
-        self.distance = distance
-    def print(self):
-        print('drive straight for {} m'.format(self.distance))
 
 class rotate_in_place:
-    def __init__(self, angle):
-        self.angle = angle
+    def __init__(self, cmd_vel):
+        self.cmd_vel = cmd_vel
+
+    def parse_argv(self, argv):
+        self.angle = float(argv[0])
+        return 1
+
     def print(self):
         print('rotate in place {} deg'.format(self.angle))
 
-def drive():
-    m = drive_straight(sys.argv[argv_pos+1])
-    moves.append(m)
-def rotate():
-    m = rotate_in_place(sys.argv[argv_pos+1])
-    moves.append(m)
-def default():
-    print ('Error: unrecognized move: {}'.format(sys.argv[argv_pos]))
-    sys.exit()
-
-print ('num args: {}'.format(len(sys.argv)))
-print('args: {}'.format(str(sys.argv)))
-if len(sys.argv) < 3:
-    print('error: must provide pairs of args')
-    sys.exit()
-if len(sys.argv) % 2 != 1:
-    print('error: must provide even number of args')
-    sys.exit()
-moves = []
-
-switcher = {
-    'd': drive,
-    'r': rotate
-    }
-
-def switch(move_rqst):
-    # print(sys.argv[argv_pos])
-    return switcher.get(sys.argv[argv_pos], default)()
-
-while (argv_pos < len(sys.argv)):
-    switch(sys.argv[argv_pos])
-    argv_pos += 2
-
-for m in moves:
-    m.print()
+    def run(self):
+        print('Running rotate_in_place')
+        time.sleep(1)
 
 def shutdown():
+    global cmd_vel
     # Always stop the robot when shutting down the node.
     rospy.loginfo("Stopping the robot...")
     cmd_vel.publish(Twist())
     rospy.sleep(1)
 
 def odom_callback(odom_extra_msg):
+    global odom_extra
     odom_extra = odom_extra_msg
 
 def platform_callback(platform_data_msg):
+    global platform_data
     platform_data = platform_data_msg
 
 def usage():
@@ -76,27 +46,65 @@ def usage():
     print('movo <distance> - drive straight for <distance> meters')
     sys.exit()
 
+def movo_case(argv):
+    m = drive_straight_odom.DriveStraightOdom(cmd_vel)
+    return m
+
+def roto_case(argv):
+    m = rotate_in_place(cmd_vel)
+    return m
+
+def stop_case(argv):
+    m = stop.Stop(cmd_vel)
+    return m
+
+def default_case(argv):
+    print ('Error: unrecognized move: {}'.format(argv[0]))
+    sys.exit()
+
+switcher = {
+    'movo': movo_case,
+    'roto': roto_case,
+    'stop': stop_case
+    }
+
+def switch(move_rqst):
+    return switcher.get(sys.argv[argv_index], default_case)(sys.argv[argv_index:])
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         usage()
-    argv_index = 1
 
     rospy.init_node('runner', anonymous=False)
     rospy.on_shutdown(shutdown)     # Set rospy to execute a shutdown function when exiting
 
     # Publisher to control the robot's speed
+    global cmd_vel
     cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
     # subscribers to robot data
-    rospy.Subscriber("/odom_extra", OdomExtra, odom_callback, queue_size=1)
-    rospy.Subscriber("/platform_data", PlatformData, platform_callback, queue_size=1)
-    time.sleep(0.1)     # wait for data to populate
+    #rospy.Subscriber("/odom_extra", OdomExtra, odom_callback, queue_size=1)
+    #rospy.Subscriber("/platform_data", PlatformData, platform_callback, queue_size=1)
+    #time.sleep(0.1)     # wait for data to populate
+
+    # instantiate command handlers
+    argv_index = 1
+    moves = []
+    while (argv_index < len(sys.argv)):
+        moves.append(switch(sys.argv[argv_index]))
+        argv_index += 1     # advanced past the command to its args or next command
+        argv_index += moves[-1].parse_argv(sys.argv[argv_index:])
+
+    print('mowbot is about to execute the following moves:')
+    for m in moves:
+        m.print()
+    reply = input('Continue? [y/n] or <Enter>')
+    if reply != 'y' and reply != '':
+        sys.exit()
 
     try:
-        m = DriveStraight(cmd_vel)
-        argv_index += m.parse_argv(sys.argv[argv_index:])
-        m.print()
-        m.run()
+        for m in moves:
+            m.run()
 
     except Exception as e:
         print(e)
