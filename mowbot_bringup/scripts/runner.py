@@ -4,26 +4,8 @@ import sys
 import time
 import rospy
 from geometry_msgs.msg import Twist
-import drive_straight_odom, stop
+import drive_straight_odom, stop, rotate_odom
 from mowbot_msgs.msg import OdomExtra, PlatformData
-
-odom_extra = OdomExtra()
-platform_data = PlatformData()
-
-class rotate_in_place:
-    def __init__(self, cmd_vel):
-        self.cmd_vel = cmd_vel
-
-    def parse_argv(self, argv):
-        self.angle = float(argv[0])
-        return 1
-
-    def print(self):
-        print('rotate in place {} deg'.format(self.angle))
-
-    def run(self):
-        print('Running rotate_in_place')
-        time.sleep(1)
 
 def shutdown():
     global cmd_vel
@@ -32,26 +14,21 @@ def shutdown():
     cmd_vel.publish(Twist())
     rospy.sleep(1)
 
-def odom_callback(odom_extra_msg):
-    global odom_extra
-    odom_extra = odom_extra_msg
-
-def platform_callback(platform_data_msg):
-    global platform_data
-    platform_data = platform_data_msg
-
 def usage():
     print('Usage: runner.py [commands] - executes the series of move commands provided')
     print('Supported move commands are:')
     print('movo <distance> - drive straight for <distance> meters')
+    print('roto <angle> - rotate <angle> degrees, +ve is CCW')
+    print('stop - ramp linear and rotational speed down to 0')
     sys.exit()
 
+# ------ Switch statement ------
 def movo_case(argv):
     m = drive_straight_odom.DriveStraightOdom(cmd_vel)
     return m
 
 def roto_case(argv):
-    m = rotate_in_place(cmd_vel)
+    m = rotate_odom.RotateOdom(cmd_vel)
     return m
 
 def stop_case(argv):
@@ -71,6 +48,8 @@ switcher = {
 def switch(move_rqst):
     return switcher.get(sys.argv[argv_index], default_case)(sys.argv[argv_index:])
 
+# ------ End switch statement ------
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         usage()
@@ -82,12 +61,7 @@ if __name__ == '__main__':
     global cmd_vel
     cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
 
-    # subscribers to robot data
-    #rospy.Subscriber("/odom_extra", OdomExtra, odom_callback, queue_size=1)
-    #rospy.Subscriber("/platform_data", PlatformData, platform_callback, queue_size=1)
-    #time.sleep(0.1)     # wait for data to populate
-
-    # instantiate command handlers
+    # argv parser creates objects to execute each move primitive and initializes each with provided args
     argv_index = 1
     moves = []
     while (argv_index < len(sys.argv)):
