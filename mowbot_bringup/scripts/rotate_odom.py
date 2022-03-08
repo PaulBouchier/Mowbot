@@ -35,24 +35,34 @@ class RotateOdom():
         print('rotate {} deg'.format(self.angle * 180 / pi))
 
     def run(self):
+        # Reduce requested angle to allow for overshoot
+        if self.angle > 0.5:
+            self.angle -= 0.3
+        if self.angle < -0.5:
+            self.angle += 0.3
         move_cmd = Twist()
         heading_goal = self.odom_extra.heading + self.angle
-        heading_goal -= (int(heading_goal / (2 * pi)) * 2 * pi)     # constrain to +/- 2pi
+        crossing2pi = int(heading_goal / (2 * pi))                 # can take values -1, 0, 1. 0 means not crossing 2pi
+        heading_goal -= crossing2pi * 2 * pi                       # constrain heading_goal to +/- 2pi
         heading_start = self.odom_extra.heading
-        rospy.loginfo('start heading: {}, goal: {}'.format(heading_start, heading_goal))
+        rospy.loginfo('start heading: {}, goal: {}, crossing2pi: {}'.format(heading_start, heading_goal, crossing2pi))
 
         # loop sending motion commands until desired distance attained
         while (not rospy.is_shutdown()):
-            # FIXME - this is wrong
-            if ((self.angle >= 0 and self.odom_extra.heading >= heading_goal) or \
+            if crossing2pi == 0 and \
+                ((self.angle >= 0 and self.odom_extra.heading >= heading_goal) or \
                 (self.angle < 0 and self.odom_extra.heading < heading_goal)):
                 break
 
             # +ve angle means turn left
             if self.angle >= 0:
                 move_cmd.angular.z = self.slew_vel(rot_speed)
+                if ((crossing2pi != 0) and (self.odom_extra.heading < heading_start)):
+                    crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
             else:
                 move_cmd.angular.z = self.slew_vel(-rot_speed)
+                if ((crossing2pi != 0) and (self.odom_extra.heading > heading_start)):
+                    crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
 
             rospy.loginfo(self.odom_extra.heading)
             self.cmd_vel.publish(move_cmd)

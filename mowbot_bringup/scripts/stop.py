@@ -11,7 +11,7 @@ from math import radians, copysign, sqrt, pow, pi, asin, atan2
 loop_rate = 10       # loop rate
 speed = 0.25    # driving speed, fwd or back
 vel_slew_rate = 0.5 / loop_rate  # m/s^2 per loop
-rot_slew_rate = 0.5 / loop_rate  # rad/s^2 per loop
+rot_slew_rate = 1.0 / loop_rate  # rad/s^2 per loop
 
 class Stop():
     def __init__(self, cmd_vel):
@@ -35,7 +35,7 @@ class Stop():
     def run(self):
         self.move_cmd = Twist()
         start_odom = self.odom_extra.odometer
-        rospy.loginfo('start odometer: {}'.format(self.odom_extra.odometer))
+        rospy.loginfo('start odometer: {}, heading: {}'.format(self.odom_extra.odometer, self.odom_extra.heading))
 
         # loop sending stop commands until both linear & angular request stopped
         while (not rospy.is_shutdown()):
@@ -50,7 +50,8 @@ class Stop():
             self.r.sleep()
 
         self.cmd_vel.publish(Twist())   # stop the robot
-        rospy.loginfo('stopped after {} m'.format(self.odom_extra.odometer - start_odom))
+        rospy.loginfo('stopped after {} m with odometer: {} heading {}'.format(
+            (self.odom_extra.odometer - start_odom), self.odom_extra.odometer, self.odom_extra.heading))
 
     def slew_vel(self, to):
         return self.slew(self.platform_data.commandedLinear, 0.0, vel_slew_rate)
