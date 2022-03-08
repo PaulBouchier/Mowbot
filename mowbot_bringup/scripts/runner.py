@@ -72,9 +72,9 @@ if __name__ == '__main__':
     print('mowbot is about to execute the following moves:')
     for m in moves:
         m.print()
-    reply = input('Continue? [y/n] or <Enter>')
-    if reply != 'y' and reply != '':
-        sys.exit()
+    # reply = input('Continue? [y/n] or <Enter>')
+    # if reply != 'y' and reply != '':
+    #     sys.exit()
 
     try:
         for m in moves:

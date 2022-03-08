@@ -9,7 +9,7 @@ import tf
 from math import radians, copysign, sqrt, pow, pi, asin, atan2
 
 loop_rate = 10       # loop rate
-rot_speed = 0.35    # rotating speed, rad/s
+rot_speed = 0.5    # rotating speed, rad/s
 rot_slew_rate = 0.5 / loop_rate  # rad/s^2 per loop
 
 class RotateOdom():
@@ -54,11 +54,11 @@ class RotateOdom():
             else:
                 move_cmd.angular.z = self.slew_vel(-rot_speed)
 
-            rospy.loginfo(move_cmd.angular.z)
+            rospy.loginfo(self.odom_extra.heading)
             self.cmd_vel.publish(move_cmd)
             self.r.sleep()
 
-        rospy.loginfo('rotated: {} deg'.format((self.odom_extra.heading - heading_start) * (180 / pi)))
+        rospy.loginfo('rotated: {} deg to heading {}'.format((self.odom_extra.heading - heading_start) * (180 / pi), self.odom_extra.heading))
 
     def slew_vel(self, to):
         return self.slew(self.platform_data.commandedAngular, to, rot_slew_rate)
