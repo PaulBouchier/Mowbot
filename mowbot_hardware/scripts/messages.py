@@ -368,7 +368,9 @@ class TxPing:
         if not self.posted:
             return
         ping_type = '\x00'
+
         send_size = self.link.tx_obj(ping_type)
+        # rospy.loginfo('Sent ping')
         self.link.send(send_size, pktIdPing)
         self.posted = False
 
