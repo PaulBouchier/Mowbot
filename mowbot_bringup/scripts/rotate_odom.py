@@ -64,7 +64,7 @@ class RotateOdom():
                 if ((crossing2pi != 0) and (self.odom_extra.heading > heading_start)):
                     crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
 
-            rospy.loginfo(self.odom_extra.heading)
+            # rospy.loginfo(self.odom_extra.heading)
             self.cmd_vel.publish(move_cmd)
             self.r.sleep()
 

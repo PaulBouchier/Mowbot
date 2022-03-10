@@ -44,10 +44,13 @@
           rl500_diff_drive_controller" />
 
   <!-- node to republish /cmd_vel on /rl500_diff_drive_controller/cmd_vel, so apps drive robot or sim -->
-  <node name="cmd_vel_2_gz_sim" pkg="mowbot_gazebo" type="cmd_vel_2_gz_sim.py" />
+  <node name="cmd_vel_2_sim" pkg="mowbot_gazebo" type="cmd_vel_2_sim.py" />
+
+  <!-- node to republish /rl500_diff_drive_controller/odom on /odom, so apps work with robot or sim -->
+  <node name="odom_from_sim" pkg="mowbot_gazebo" type="odom_from_sim.py" />
 
   <node if="$(arg robot_steering)" name="rqt_robot_steering" pkg="rqt_robot_steering" type="rqt_robot_steering">
-    <param name="default_topic" value="/rl500_diff_drive_controller/cmd_vel"/>
+    <param name="default_topic" value="/cmd_vel"/>
   </node>
 
 </launch>
