@@ -7,6 +7,8 @@ from geometry_msgs.msg import Twist
 import drive_straight_odom, stop, rotate_odom
 from mowbot_msgs.msg import OdomExtra, PlatformData
 
+loop_rate = 10
+
 def shutdown():
     global cmd_vel
     # Always stop the robot when shutting down the node.
@@ -17,8 +19,8 @@ def shutdown():
 def usage():
     print('Usage: runner.py [commands] - executes the series of move commands provided')
     print('Supported move commands are:')
-    print('movo <distance> - drive straight for <distance> meters')
-    print('roto <angle> - rotate <angle> degrees, +ve is CCW')
+    print('movo <distance> [speed] - drive straight for <distance> meters')
+    print('roto <angle> [speed] - rotate <angle> degrees, +ve is CCW')
     print('stop - ramp linear and rotational speed down to 0')
     sys.exit()
 
@@ -60,6 +62,7 @@ if __name__ == '__main__':
     # Publisher to control the robot's speed
     global cmd_vel
     cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    r = rospy.Rate(loop_rate)
 
     # argv parser creates objects to execute each move primitive and initializes each with provided args
     argv_index = 1
@@ -78,7 +81,10 @@ if __name__ == '__main__':
 
     try:
         for m in moves:
-            m.run()
+            while (not m.run()):
+                r.sleep()
+                if rospy.is_shutdown():
+                    break
 
     except Exception as e:
         print(e)

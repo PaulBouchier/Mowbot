@@ -15,6 +15,7 @@ rot_slew_rate = 1.0 / loop_rate  # rad/s^2 per loop
 
 class Stop():
     def __init__(self, cmd_vel):
+        self.once = True
         self.cmd_vel = cmd_vel      # cmd_vel publisher
 
         # subscribers to robot data
@@ -23,8 +24,8 @@ class Stop():
         self.odom_extra = OdomExtra()
         self.platform_data = PlatformData()
 
-        self.r = rospy.Rate(loop_rate)
-        self.r.sleep()      #  wait for /odom_extra to populate odometer
+        self.move_cmd = Twist()
+        time.sleep(0.1)
 
     def parse_argv(self, argv):
         return 0            # return number of args consumed
@@ -33,25 +34,23 @@ class Stop():
         print('Stop')
 
     def run(self):
-        self.move_cmd = Twist()
-        start_odom = self.odom_extra.odometer
-        rospy.loginfo('start odometer: {}, heading: {}'.format(self.odom_extra.odometer, self.odom_extra.heading))
+        if self.once:
+            start_odom = self.odom_extra.odometer
+            rospy.loginfo('Stop: start odometer: {}, heading: {}'.format(self.odom_extra.odometer, self.odom_extra.heading))
 
         # loop sending stop commands until both linear & angular request stopped
-        while (not rospy.is_shutdown()):
-            if (abs(self.platform_data.commandedLinear) < 0.01 and abs(self.platform_data.commandedAngular) < 0.01):
-                break
+        if (abs(self.platform_data.commandedLinear) < 0.01 and abs(self.platform_data.commandedAngular) < 0.01):
+            return True
 
-            self.move_cmd.linear.x = self.slew_vel(0)
-            self.move_cmd.angular.z = self.slew_rot(0)
+        self.move_cmd.linear.x = self.slew_vel(0)
+        self.move_cmd.angular.z = self.slew_rot(0)
 
-            # rospy.loginfo(self.move_cmd.linear.x)
-            self.cmd_vel.publish(self.move_cmd)
-            self.r.sleep()
+        # rospy.loginfo(self.move_cmd.linear.x)
+        self.cmd_vel.publish(self.move_cmd)
+        self.r.sleep()
 
         self.cmd_vel.publish(Twist())   # stop the robot
-        rospy.loginfo('stopped after {} m with odometer: {} heading {}'.format(
-            (self.odom_extra.odometer - start_odom), self.odom_extra.odometer, self.odom_extra.heading))
+        return False
 
     def slew_vel(self, to):
         return self.slew(self.platform_data.commandedLinear, 0.0, vel_slew_rate)
@@ -94,11 +93,15 @@ if __name__ == '__main__':
     # Publisher to control the robot's speed
     global cmd_vel
     cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    r = rospy.Rate(loop_rate)
 
     try:
         m = Stop(cmd_vel)
         m.print()
-        m.run()
+        while (not rospy.is_shutdown()):
+            if m.run():
+                break
+            r.sleep()
 
     except Exception as e:
         print(e)

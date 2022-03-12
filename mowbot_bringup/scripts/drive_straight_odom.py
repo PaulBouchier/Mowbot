@@ -9,11 +9,14 @@ import tf
 from math import radians, copysign, sqrt, pow, pi, asin, atan2
 
 loop_rate = 10       # loop rate
-speed = 0.25    # driving speed, fwd or back
+speed_default = 0.25    # driving speed, fwd or back
 vel_slew_rate = 0.5 / loop_rate  # m/s^2 per loop
 
 class DriveStraightOdom():
     def __init__(self, cmd_vel):
+        self.once = True
+        self.speed = speed_default
+
         # Publisher to control the robot's speed
         self.cmd_vel = cmd_vel
 
@@ -22,39 +25,48 @@ class DriveStraightOdom():
         rospy.Subscriber("/platform_data", PlatformData, self.platform_callback, queue_size=1)
         self.odom_extra = OdomExtra()
         self.platform_data = PlatformData()
-
-        self.r = rospy.Rate(loop_rate)
-        self.r.sleep()      #  wait for /odom_extra to populate odometer
+        
+        self.move_cmd = Twist()
+        time.sleep(0.1)      #  wait for /odom_extra to populate odometer
 
     def parse_argv(self, argv):
         self.distance = float(argv[0])  # pick off first arg from supplied list
+        self.odometer_goal = self.odom_extra.odometer + self.distance
+        self.odometer_start = self.odom_extra.odometer
+
+        # check whether a speed argument was supplied
+        if len(argv) > 1:
+            try:
+                speed_arg = float(argv[1])
+                self.speed = speed_arg
+                print('Using supplied speed {}'.format(self.speed))
+                return 2
+            except ValueError:
+                return 1
         return 1            # return number of args consumed
 
     def print(self):
         print('Drive straight with odometry for {} m'.format(self.distance))
 
+    # run is called at the rate until it returns true
     def run(self):
-        move_cmd = Twist()
-        odometer_goal = self.odom_extra.odometer + self.distance
-        odometer_start = self.odom_extra.odometer
-        rospy.loginfo('start odometer: {}, goal: {}'.format(self.odom_extra.odometer, odometer_goal))
+        if self.once:
+            rospy.loginfo('start odometer: {}, goal: {}'.format(self.odom_extra.odometer, self.odometer_goal))
+            self.once = False
 
-        # loop sending motion commands until desired distance attained
-        while (not rospy.is_shutdown()):
-            if ((self.distance >= 0 and self.odom_extra.odometer >= odometer_goal) or \
-                (self.distance < 0 and self.odom_extra.odometer < odometer_goal)):
-                break
+        if ((self.distance >= 0 and self.odom_extra.odometer >= self.odometer_goal) or \
+            (self.distance < 0 and self.odom_extra.odometer < self.odometer_goal)):
+            rospy.loginfo('traveled: {} m'.format(self.odom_extra.odometer - self.odometer_start))
+            return True
 
-            if self.distance >= 0:
-                move_cmd.linear.x = self.slew_vel(speed)
-            else:
-                move_cmd.linear.x = self.slew_vel(-speed)
+        if self.distance >= 0:
+            self.move_cmd.linear.x = self.slew_vel(self.speed)
+        else:
+            self.move_cmd.linear.x = self.slew_vel(-self.speed)
 
-            # rospy.loginfo(move_cmd.linear.x)
-            self.cmd_vel.publish(move_cmd)
-            self.r.sleep()
-
-        rospy.loginfo('traveled: {} m'.format(self.odom_extra.odometer - odometer_start))
+        # rospy.loginfo(self.move_cmd.linear.x)
+        self.cmd_vel.publish(self.move_cmd)
+        return False
 
     def slew_vel(self, to):
         return self.slew(self.platform_data.commandedLinear, to, vel_slew_rate)
@@ -80,11 +92,11 @@ def shutdown():
     rospy.sleep(1)
 
 def usage():
-    print('Usage: drive_straight.py <distance> - drive the specified distance forward or backward')
+    print('Usage: drive_straight.py <distance> [speed] - drive the specified distance forward or backward, with optional speed')
     sys.exit()
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 2 and len(sys.argv) != 3:
         usage()
     argv_index = 1
 
@@ -93,12 +105,16 @@ if __name__ == '__main__':
 
     global cmd_vel
     cmd_vel = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    r = rospy.Rate(loop_rate)
 
     try:
         m = DriveStraightOdom(cmd_vel)
         argv_index += m.parse_argv(sys.argv[argv_index:])
         m.print()
-        m.run()
+        while (not rospy.is_shutdown()):
+            if m.run():
+                break
+            r.sleep()
 
     except Exception as e:
         print(e)
