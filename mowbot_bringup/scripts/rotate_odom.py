@@ -8,27 +8,13 @@ from geometry_msgs.msg import Twist
 from mowbot_msgs.msg import OdomExtra, PlatformData
 import tf
 from math import radians, copysign, sqrt, pow, pi, asin, atan2
+from MoveParent import MoveParent
 
 loop_rate = 10       # loop rate
-rot_speed_default = 0.5    # rotating speed, rad/s
-rot_slew_rate = 0.5 / loop_rate  # rad/s^2 per loop
 
-class RotateOdom():
+class RotateOdom(MoveParent):
     def __init__(self, cmd_vel):
-        self.once = True
-        self.rot_speed = rot_speed_default
-
-        # Publisher to control the robot's speed
-        self.cmd_vel = cmd_vel
-
-        # subscribers to robot data
-        self.odom_extra = OdomExtra()
-        self.platform_data = PlatformData()
-        rospy.Subscriber("/odom_extra", OdomExtra, self.odom_callback, queue_size=1)
-        rospy.Subscriber("/platform_data", PlatformData, self.platform_callback, queue_size=1)
-
-        self.move_cmd = Twist()
-        time.sleep(0.1)
+        super().__init__(cmd_vel)
 
     def parse_argv(self, argv):
         angle_deg = float(argv[0])  # pick off first arg from supplied list - angle to turn in deg - +ve = CCW
@@ -59,49 +45,31 @@ class RotateOdom():
     def print(self):
         print('rotate {} deg'.format(self.angle * 180 / pi))
 
+    # run is called at the rate until it returns true
     def run(self):
         if self.once:
             rospy.loginfo('start heading: {:.2f}, goal: {:.2f}, crossing2pi: {}'.format(self.heading_start, self.heading_goal, self.crossing2pi))
             self.once = False
 
-        # loop sending motion commands until desired distance attained
-        while (not rospy.is_shutdown()):
-            if self.crossing2pi == 0 and \
-                ((self.angle >= 0 and self.odom_extra.heading >= self.heading_goal) or \
-                (self.angle < 0 and self.odom_extra.heading < self.heading_goal)):
-                rospy.loginfo('rotated: {} deg to heading {:.2f}'.format((self.odom_extra.heading - self.heading_start) * (180 / pi), self.odom_extra.heading))
-                return True
+        if self.crossing2pi == 0 and \
+            ((self.angle >= 0 and self.odom_extra.heading >= self.heading_goal) or \
+            (self.angle < 0 and self.odom_extra.heading < self.heading_goal)):
+            rospy.loginfo('rotated: {} deg to heading {:.2f}'.format((self.odom_extra.heading - self.heading_start) * (180 / pi), self.odom_extra.heading))
+            return True
 
-            # +ve angle means turn left
-            if self.angle >= 0:
-                self.move_cmd.angular.z = self.slew_rot(self.rot_speed)
-                if ((self.crossing2pi != 0) and (self.odom_extra.heading < self.heading_start)):
-                    self.crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
-            else:
-                self.move_cmd.angular.z = self.slew_rot(-self.rot_speed)
-                if ((self.crossing2pi != 0) and (self.odom_extra.heading > self.heading_start)):
-                    self.crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
+        # +ve angle means turn left
+        if self.angle >= 0:
+            self.move_cmd.angular.z = self.slew_rot(self.rot_speed)
+            if ((self.crossing2pi != 0) and (self.odom_extra.heading < self.heading_start)):
+                self.crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
+        else:
+            self.move_cmd.angular.z = self.slew_rot(-self.rot_speed)
+            if ((self.crossing2pi != 0) and (self.odom_extra.heading > self.heading_start)):
+                self.crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
 
-            # rospy.loginfo(self.odom_extra.heading)
-            self.cmd_vel.publish(self.move_cmd)
-            return False
-
-    def slew_rot(self, to):
-        return self.slew(self.platform_data.commandedAngular, to, rot_slew_rate)
-
-    def slew(self, current, to, slew_rate):
-        diff = to - current
-        if diff > slew_rate:
-            return current + slew_rate
-        if diff < -slew_rate:
-            return current - slew_rate
-        return to
-
-    def odom_callback(self, odom_extra_msg):
-        self.odom_extra = odom_extra_msg
-
-    def platform_callback(self, platform_data_msg):
-        self.platform_data = platform_data_msg
+        # rospy.loginfo(self.odom_extra.heading)
+        self.cmd_vel.publish(self.move_cmd)
+        return False
 
 def shutdown():
     # Always stop the robot when shutting down the node.
