@@ -11,25 +11,23 @@ from math import radians, copysign, sqrt, pow, pi, asin, atan2
 from MoveParent import MoveParent
 
 loop_rate = 10       # loop rate
+target_close_angle = 0.3    # slow down when this close
+angle_correction_sim = 0.970
 
 class RotateOdom(MoveParent):
     def __init__(self, cmd_vel):
         super().__init__(cmd_vel)
+        self.rot_stopping = False
 
     def parse_argv(self, argv):
         angle_deg = float(argv[0])  # pick off first arg from supplied list - angle to turn in deg - +ve = CCW
-        self.angle = angle_deg * (pi / 180)
+        self.angle = angle_deg * (pi / 180) * angle_correction_sim
 
-        # Reduce requested angle to allow for overshoot
-        if self.angle > 0.5:
-            self.angle -= 0.3
-        if self.angle < -0.5:
-            self.angle += 0.3
-        
+        self.heading_start = self.odom_extra.heading
         self.heading_goal = self.odom_extra.heading + self.angle
         self.crossing2pi = int(self.heading_goal / (2 * pi))                 # can take values -1, 0, 1. 0 means not crossing 2pi
         self.heading_goal -= self.crossing2pi * 2 * pi                       # constrain heading_goal to +/- 2pi
-        self.heading_start = self.odom_extra.heading
+        self.rot_stopping = False
 
         # check whether a rot_speed argument was supplied
         if len(argv) > 1:
@@ -50,25 +48,46 @@ class RotateOdom(MoveParent):
         if self.once:
             rospy.loginfo('start heading: {:.2f}, goal: {:.2f}, crossing2pi: {}'.format(self.heading_start, self.heading_goal, self.crossing2pi))
             self.once = False
+            self.rot_speed = self.full_rot_speed
 
+        if self.rot_stopping:
+            if abs(self.odom.twist.twist.angular.z) < 0.01:     # wait till we've stopped
+                self.once = True
+                rospy.loginfo('rotated: {} deg to heading {:.2f}'.format((self.odom_extra.heading - self.heading_start) * (180 / pi), self.odom_extra.heading))
+                return True
+            else:
+                return False
+
+        # slow the rotation speed if we're getting close
+        if self.crossing2pi == 0:
+            if ((self.angle >= 0 and self.odom_extra.heading > (self.heading_goal - target_close_angle)) or
+                (self.angle < 0 and self.odom_extra.heading < (self.heading_goal + target_close_angle))):
+                self.rot_speed = self.low_rot_speed
+
+        # stop if we've gone past the goal
         if self.crossing2pi == 0 and \
             ((self.angle >= 0 and self.odom_extra.heading >= self.heading_goal) or \
             (self.angle < 0 and self.odom_extra.heading < self.heading_goal)):
-            rospy.loginfo('rotated: {} deg to heading {:.2f}'.format((self.odom_extra.heading - self.heading_start) * (180 / pi), self.odom_extra.heading))
-            return True
 
-        # +ve angle means turn left
+            self.move_cmd.angular.z = 0     # exceeded goal, stop immediately
+            self.cmd_vel.publish(self.move_cmd)
+            self.rot_stopping = True        # wait until we've stopped before exiting
+
+            return False
+
+        # +ve angle means turn left. Adjust pi-crossng detection to avoid early exit without movement
         if self.angle >= 0:
             self.move_cmd.angular.z = self.slew_rot(self.rot_speed)
-            if ((self.crossing2pi != 0) and (self.odom_extra.heading < self.heading_start)):
+            if ((self.crossing2pi != 0) and (self.odom_extra.heading < (self.heading_start - 0.1))):
                 self.crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
         else:
             self.move_cmd.angular.z = self.slew_rot(-self.rot_speed)
-            if ((self.crossing2pi != 0) and (self.odom_extra.heading > self.heading_start)):
+            if ((self.crossing2pi != 0) and (self.odom_extra.heading > (self.heading_start + 0.1))):
                 self.crossing2pi = 0                 # robot crossed 2pi, now let the end-of-rotate logic work
 
         # rospy.loginfo(self.odom_extra.heading)
         self.cmd_vel.publish(self.move_cmd)
+
         return False
 
 def shutdown():

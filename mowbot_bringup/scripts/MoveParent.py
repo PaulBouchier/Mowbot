@@ -14,7 +14,7 @@ from math import radians, copysign, sqrt, pow, pi, asin, atan2
 
 loop_rate = 10       # loop rate
 speed_default = 0.35    # driving speed, fwd or back
-low_speed_default = 0.2
+low_speed_default = 0.15
 vel_slew_rate = 0.5 / loop_rate  # m/s^2 per loop
 rot_speed_default = 0.5    # rotating speed, rad/s
 low_rot_speed_default = 0.25
@@ -24,8 +24,10 @@ class MoveParent():
     def __init__(self, cmd_vel):
         self.once = True
         self.speed = speed_default
+        self.full_speed = speed_default
         self.low_speed = low_speed_default
         self.rot_speed = rot_speed_default
+        self.full_rot_speed = rot_speed_default
         self.low_rot_speed = low_rot_speed_default
 
         # Publisher to control the robot's speed

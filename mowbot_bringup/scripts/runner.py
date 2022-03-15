@@ -79,8 +79,11 @@ if __name__ == '__main__':
     # if reply != 'y' and reply != '':
     #     sys.exit()
 
+    argv_index = 1      # re-parse the args as we perform each action, to pick up latest pose
     try:
         for m in moves:
+            argv_index += 1
+            argv_index += m.parse_argv(sys.argv[argv_index:])
             while (not m.run()):
                 r.sleep()
                 if rospy.is_shutdown():
