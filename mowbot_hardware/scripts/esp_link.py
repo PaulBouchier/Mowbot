@@ -70,7 +70,7 @@ def reconfig_callback(config, level):
 
     rospy.logdebug('Reconfig log levels: pilink: {pilink_log_lvl}, rl500: {rl500_log_lvl}, odom: {odom_log_lvl}'.format(**config))
     rospy.logdebug('Reconfig PID: use_pid: {use_pid}, prop gain: {pid_p}, integral: {pid_i}, derivative: {pid_d}'.format(**config))
-    rospy.logdebug('Reconfig ESP32: bit_mode: {rl500_bit_mode}, reboot: {esp_reboot}, clear_odom: {clear_odom}'.format(**config))
+    rospy.logdebug('Reconfig ESP32: bit_mode: {rl500_bit_mode}, reboot: {esp_reboot}, clear_odometry: {clear_odometry}'.format(**config))
 
     if config['pilink_log_lvl'] != pilink_log_lvl or config['rl500_log_lvl'] != rl500_log_lvl or config['odom_log_lvl'] != odom_log_lvl:
         pilink_log_lvl = config['pilink_log_lvl']
@@ -86,9 +86,9 @@ def reconfig_callback(config, level):
         tx_bit_mode.post()
         config['rl500_bit_mode'] = False
 
-    if config['clear_odom']:
+    if config['clear_odometry']:
         tx_clear_odom.post()
-        config['clear_odom'] = False
+        config['clear_odometry'] = False
 
     return config
 
