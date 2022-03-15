@@ -4,7 +4,7 @@ import sys
 import rospy
 from pySerialTransfer import pySerialTransfer as txfer
 from messages import RxLog, RxOdometry, RxPlatformData, RxPong, \
-     TxBITMode, TxDriveMotorsRqst, TxLogLevel, TxPing, TxReboot
+     TxBITMode, TxClearOdom, TxDriveMotorsRqst, TxLogLevel, TxPing, TxReboot
 from dynamic_reconfigure.server import Server
 from mowbot_hardware.cfg import MowbotConfig
 
@@ -17,6 +17,7 @@ pid_i = 1.0
 pid_d = 1.0
 rl500_bit_mode = False
 esp_reboot = False
+clear_odom = False
 
 # initialize link
 def init_link(port_name):
@@ -32,7 +33,7 @@ def init_link(port_name):
 # initialize messages
 def init_msgs(link):
     global rx_log, rx_odometry, rx_platform_data, rx_pong, \
-        tx_bit_mode, tx_drive_motors_rqst, tx_log_level, tx_ping, tx_reboot 
+        tx_bit_mode, tx_clear_odom, tx_drive_motors_rqst, tx_log_level, tx_ping, tx_reboot 
     # instantiate rx & tx message handlers
     rx_log = RxLog(link)
     rx_odometry = RxOdometry(link)
@@ -40,6 +41,7 @@ def init_msgs(link):
     rx_pong = RxPong(link)
 
     tx_bit_mode = TxBITMode(link)
+    tx_clear_odom = TxClearOdom(link)
     tx_drive_motors_rqst = TxDriveMotorsRqst(link)
     tx_log_level = TxLogLevel(link)
     tx_ping = TxPing(link)
@@ -68,7 +70,7 @@ def reconfig_callback(config, level):
 
     rospy.logdebug('Reconfig log levels: pilink: {pilink_log_lvl}, rl500: {rl500_log_lvl}, odom: {odom_log_lvl}'.format(**config))
     rospy.logdebug('Reconfig PID: use_pid: {use_pid}, prop gain: {pid_p}, integral: {pid_i}, derivative: {pid_d}'.format(**config))
-    rospy.logdebug('Reconfig ESP32: bit_mode: {rl500_bit_mode}, reboot: {esp_reboot}'.format(**config))
+    rospy.logdebug('Reconfig ESP32: bit_mode: {rl500_bit_mode}, reboot: {esp_reboot}, clear_odom: {clear_odom}'.format(**config))
 
     if config['pilink_log_lvl'] != pilink_log_lvl or config['rl500_log_lvl'] != rl500_log_lvl or config['odom_log_lvl'] != odom_log_lvl:
         pilink_log_lvl = config['pilink_log_lvl']
@@ -83,6 +85,10 @@ def reconfig_callback(config, level):
     if config['rl500_bit_mode']:
         tx_bit_mode.post()
         config['rl500_bit_mode'] = False
+
+    if config['clear_odom']:
+        tx_clear_odom.post()
+        config['clear_odom'] = False
 
     return config
 
@@ -120,15 +126,17 @@ if __name__ == '__main__':
         
         while True:
             tick_link()
-            tx_ping.send_posted()
+            tx_bit_mode.send_posted()
+            tick_link()
+            tx_clear_odom.send_posted()
             tick_link()
             tx_drive_motors_rqst.send_posted()
             tick_link()
             tx_log_level.send_posted()
             tick_link()
-            tx_reboot.send_posted()
+            tx_ping.send_posted()
             tick_link()
-            tx_bit_mode.send_posted()
+            tx_reboot.send_posted()
             time.sleep(0.01)
     
     except KeyboardInterrupt:

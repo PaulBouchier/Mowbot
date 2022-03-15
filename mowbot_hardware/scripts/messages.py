@@ -17,6 +17,7 @@ pktIdDriveMotorsRqst = 1
 pktIdLogLevel = 2
 pktIdReboot = 3
 pktIdBITMode = 4
+pktIdClearOdom = 5
 
 MAX_SPEED = 0.47      # meters/second
 BASE_WIDTH = 0.424    # meters, 16.675"
@@ -289,6 +290,25 @@ class TxBITMode:
         dummy_data = 0
         send_size = self.link.tx_obj(dummy_data)
         self.link.send(send_size, pktIdBITMode)
+        self.posted = False
+
+class TxClearOdom:
+    def __init__(self, link):
+        self.link = link
+        self.posted = False
+
+    def post(self):
+        if self.posted:
+            rospy.logerr('TxClearOdom previously posted rqst still pending sending')
+        self.posted = True
+    
+    def send_posted(self):
+        if not self.posted:
+            return
+        dummy = 0           # must send something for SerialTransfer to work
+        send_size = self.link.tx_obj(dummy)
+
+        self.link.send(send_size, pktIdClearOdom)
         self.posted = False
 
 class TxDriveMotorsRqst:
