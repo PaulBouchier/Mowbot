@@ -152,7 +152,7 @@
 
   <xacro:macro name="wheel_size">
     <geometry>
-      <cylinder length="0.05" radius="0.127"/>
+      <cylinder length="0.005" radius="0.127"/>
     </geometry>
     <origin xyz="0 0 0" rpy="${M_PI/2} 0 0"/>
   </xacro:macro>

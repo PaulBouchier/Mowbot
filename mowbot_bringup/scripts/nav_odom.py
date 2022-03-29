@@ -13,7 +13,7 @@ from rotate_odom import RotateOdom
 
 
 err_circle = 0.25    # meters, distance within which we consider goal achieved
-dead_zone = pi / 20  # deadzone is +/- this for disablig angular rotation
+dead_zone = pi / 200  # deadzone is +/- this for disablig angular rotation
 downramp = 0.75       # downramp is distance at which speed is reduced to slow
 
 class TargetXY():
@@ -122,9 +122,9 @@ class NavOdom(MoveParent):
         if self.bearing < dead_zone and self.bearing > -dead_zone:
             self.move_cmd.angular.z = self.slew_rot(0)
         else:
-            if self.bearing > dead_zone and self.distance > err_circle:
+            if self.bearing > dead_zone: # and self.distance > err_circle:
                 self.move_cmd.angular.z = self.slew_rot(self.rot_speed)
-            if self.bearing < -dead_zone and self.distance > err_circle:
+            if self.bearing < -dead_zone: # and self.distance > err_circle:
                 self.move_cmd.angular.z = self.slew_rot(-self.rot_speed)
 
         # set linear speed, slow down on approach

@@ -4,7 +4,7 @@ import sys
 import time
 import rospy
 from geometry_msgs.msg import Twist
-import drive_straight_odom, stop, rotate_odom
+import drive_straight_odom, stop, rotate_odom, drive_arc
 from mowbot_msgs.msg import OdomExtra, PlatformData
 
 loop_rate = 10
@@ -20,6 +20,7 @@ def usage():
     print('Usage: runner.py [commands] - executes the series of move commands provided')
     print('Supported move commands are:')
     print('movo <distance> [speed] - drive straight for <distance> meters')
+    print('arc <angle> <radius> <f | b>')
     print('roto <angle> [speed] - rotate <angle> degrees, +ve is CCW')
     print('stop - ramp linear and rotational speed down to 0')
     sys.exit()
@@ -27,6 +28,10 @@ def usage():
 # ------ Switch statement ------
 def movo_case(argv):
     m = drive_straight_odom.DriveStraightOdom(cmd_vel)
+    return m
+
+def arc_case(argv):
+    m = drive_arc.DriveArc(cmd_vel)
     return m
 
 def roto_case(argv):
@@ -43,6 +48,7 @@ def default_case(argv):
 
 switcher = {
     'movo': movo_case,
+    'arc': arc_case,
     'roto': roto_case,
     'stop': stop_case
     }

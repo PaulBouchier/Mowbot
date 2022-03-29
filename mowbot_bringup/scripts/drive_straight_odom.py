@@ -32,7 +32,7 @@ class DriveStraightOdom(MoveParent):
         return 1            # return number of args consumed
 
     def print(self):
-        print('Drive straight with odometry for {} m'.format(self.distance))
+        rospy.loginfo('Drive straight with odometry for {} m'.format(self.distance))
 
     # run is called at the rate until it returns true
     def run(self):
@@ -45,6 +45,7 @@ class DriveStraightOdom(MoveParent):
             rospy.loginfo('traveled: {} m'.format(self.odom_extra.odometer - self.odometer_start))
             return True
 
+        # accelerate to full speed as long as we haven't reached the goal
         if self.distance >= 0:
             self.move_cmd.linear.x = self.slew_vel(self.speed)
         else:
