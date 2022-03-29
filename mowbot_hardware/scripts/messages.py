@@ -124,6 +124,9 @@ class RxOdometry:
         # member heading_rad
         heading_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
+        # member odom_heading_rad
+        odom_heading_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
         # member speedX_mps
         self.odom.twist.twist.linear.x = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
@@ -157,6 +160,9 @@ class RxOdometry:
         #member rightWheelAngleRad
         right_wheel_angle_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
+        # member imuCalStatus
+        IMUCalStatus = self.link.rx_obj(obj_type='i', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
 
         # populate pose heading quaternion
         quaternion = Quaternion()
@@ -196,6 +202,8 @@ class RxOdometry:
         self.odom_extra.right_speed = right_speed
         self.odom_extra.left_encoder_cnt = left_enc_cnt
         self.odom_extra.right_encoder_cnt = right_enc_cnt
+        self.odom_extra.odom_heading = odom_heading_rad
+        self.odom_extra.IMUCalStatus = IMUCalStatus
 
         self.odom_extra.header.seq = sequence
         self.odom_extra.header.stamp = rospy.Time.now()
