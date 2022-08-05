@@ -8,6 +8,7 @@
   <arg name="authenticate"           default = "true" />
   <arg name="username"               default = "paul.bouchier@gmail.com" />
   <arg name="password"               default = "Unused" />
+  <arg name="rtcm_message_package"   default = "rtcm_msgs" />
 
   <!-- ****************************************************************** -->
   <!-- NTRIP Client Node -->
@@ -18,7 +19,7 @@
     <param name="host"       value="$(arg host)" />
     <param name="port"       value="$(arg port)" />
     <param name="mountpoint" value="$(arg mountpoint)" />
-    <param name="rtcm_msg_pkg" value="rtcm_msgs" />
+    <param name="rtcm_message_package" value="$(arg rtcm_message_package)" />
 
     <!-- If this is set to true, we will read the username and password and attempt to authenticate. If not, we will attempt to connect unauthenticated -->
     <param name="authenticate" value="$(arg authenticate)" />
