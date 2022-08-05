@@ -40,5 +40,6 @@
   <include file="$(find ublox_gps)/launch/ublox_device.launch">
     <arg name="param_file_dir" value="$(find mowbot_hardware)/cfg" />
     <arg name="param_file_name"  value="zed_f9p" />
+    <arg name="node_name" value="gps" />
   </include>
 </launch>
