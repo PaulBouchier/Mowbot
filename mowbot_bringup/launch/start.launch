@@ -39,7 +39,11 @@
   <include file="$(find ublox_gps)/launch/ublox_device.launch">
     <arg name="param_file_dir" value="$(find mowbot_hardware)/cfg" />
     <arg name="param_file_name"  value="zed_f9p" />
+    <arg name="node_name" value="gps" />
   </include>
+
+  <!-- Start the LLA to UTM converter node -->
+  <include file="$(find utm_lla)/launch/coordinate_convertion.launch" />
 
   <!-- Start the robot comms node -->
   <node name="esp_link" pkg="mowbot_hardware" type="esp_link.py" output="screen" />
