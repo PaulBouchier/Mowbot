@@ -204,11 +204,11 @@
   <xacro:wheel prefix="left" reflect="1" />
   <xacro:wheel prefix="right" reflect="-1" />
 
-  <link name="imu">
+  <link name="imu_link">
     <xacro:sensor_visual/>
     <xacro:sensor_inertial/>
   </link>
-  <gazebo reference="imu">
+  <gazebo reference="imu_link">
     <material>Gazebo/Blue</material>
   </gazebo>
   
@@ -217,7 +217,7 @@
     <axis xyz="0 1 0" />
     <origin xyz="-0.18 -0.08 0.1" rpy="0 0 0" />
     <parent link="base_link"/>
-    <child link="imu"/>
+    <child link="imu_link"/>
   </joint>
 
   <!-- No Lidar at present
@@ -236,18 +236,18 @@
   </joint>
   -->
 	
-  <link name="gps">
+  <link name="gps_link">
     <xacro:sensor_visual/>
     <xacro:sensor_inertial/>
   </link>
-  <gazebo reference="gps">
+  <gazebo reference="gps_link">
     <material>Gazebo/Blue</material>
   </gazebo>
   
   <joint name="gps_joint" type="fixed">
     <origin xyz="0.42 0.0 0.35" rpy="0 0 0" />
     <parent link="base_link" />
-    <child link="gps" />
+    <child link="gps_link" />
   </joint>
 	
   <!-- No Lidar at present -->
