@@ -1,5 +1,8 @@
 <launch>
 
+  <!-- Robot model -->
+  <arg name="model" default="$(find mowbot_description)/urdf/rl500.urdf.xacro"/>
+
   <!-- Declare ntrip client arguments with default values -->
   <arg name="host"                   default = "rtk2go.com" />
   <arg name="port"                   default = "2101" />
@@ -10,7 +13,19 @@
   <arg name="rtcm_message_package"   default = "rtcm_msgs" />
 
   <!-- ****************************************************************** -->
-  <!-- NTRIP Client Node -->
+  <!-- Start the robot comms node -->
+  <!-- ****************************************************************** -->
+  <node name="esp_link" pkg="mowbot_hardware" type="esp_link.py" output="screen" />
+
+  <!-- publish robot internal joint tf transforms -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg model)" />
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher"  name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="5.0" />
+  </node>
+
+  <!-- ****************************************************************** -->
+  <!-- NTRIP Client Node for RTK GPS corrections -->
   <!-- ****************************************************************** -->
   <node name="ntrip_client_node" pkg="ntrip_client" type="ntrip_ros.py" output="screen" ns="ntrip_client">
 
@@ -44,8 +59,5 @@
 
   <!-- Start the LLA to UTM converter node -->
   <include file="$(find utm_lla)/launch/coordinate_convertion.launch" />
-
-  <!-- Start the robot comms node -->
-  <node name="esp_link" pkg="mowbot_hardware" type="esp_link.py" output="screen" />
 
 </launch>

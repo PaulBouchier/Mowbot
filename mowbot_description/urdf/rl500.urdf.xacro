@@ -203,7 +203,7 @@
 
   <xacro:wheel prefix="left" reflect="1" />
   <xacro:wheel prefix="right" reflect="-1" />
-  
+
   <link name="imu">
     <xacro:sensor_visual/>
     <xacro:sensor_inertial/>
@@ -215,11 +215,12 @@
 
   <joint name="imu_joint" type="fixed">
     <axis xyz="0 1 0" />
-    <origin xyz="0.279 0.05 0.342" rpy="0 0 0" />
+    <origin xyz="-0.18 0.08 0.07" rpy="0 0 0" />
     <parent link="base_link"/>
     <child link="imu"/>
   </joint>
 
+  <!-- No Lidar at present
   <link name="lidar">
     <xacro:sensor_visual/>
     <xacro:sensor_inertial/>
@@ -233,6 +234,7 @@
     <parent link="base_link" />
     <child link="lidar" />
   </joint>
+  -->
 	
   <link name="gps">
     <xacro:sensor_visual/>
@@ -243,12 +245,14 @@
   </gazebo>
   
   <joint name="gps_joint" type="fixed">
-    <origin xyz="0.356 -0.102 0.342" rpy="0 0 0" />
+    <origin xyz="0.42 0.0 0.3" rpy="0 0 0" />
     <parent link="base_link" />
     <child link="gps" />
   </joint>
 	
+  <!-- No Lidar at present -->
   <!-- hokuyo -->
+  <!--
   <gazebo reference="lidar">
     <sensor type="ray" name="head_hokuyo_sensor">
       <pose>0 0 0 0 0 0</pose>
@@ -270,10 +274,12 @@
         </range>
         <noise>
           <type>gaussian</type>
+  -->
           <!-- Noise parameters based on published spec for Hokuyo laser
                achieving "+-30mm" accuracy at range < 10m.  A mean of 0.0m and
                stddev of 0.01m will put 99.7% of samples within 0.03m of the true
                reading. -->
+  <!--
           <mean>0.0</mean>
           <stddev>0.01</stddev>
         </noise>
@@ -284,7 +290,8 @@
       </plugin>
     </sensor>
     </gazebo>
-    
+  -->
+
 	  <gazebo>
 	    <plugin name="imu_controller" filename="libgazebo_ros_imu.so">
 	      <alwaysOn>true</alwaysOn>
