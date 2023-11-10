@@ -4,7 +4,7 @@ import sys
 import time
 import rospy
 from geometry_msgs.msg import Twist
-import drive_straight_odom, stop, rotate_odom, drive_arc
+import drive_straight_odom, stop, rotate_odom, drive_arc, nav_odom
 from mowbot_msgs.msg import OdomExtra, PlatformData
 
 loop_rate = 10
@@ -22,7 +22,8 @@ def usage():
     print('movo <distance> [speed] - drive straight for <distance> meters')
     print('arc <angle> <radius> <f | b>')
     print('roto <angle> [speed] - rotate <angle> degrees, +ve is CCW')
-    print('stop - ramp linear and rotational speed down to 0')
+    print('nav <target_x> <target_y> [ more_targets ] - navigate to a list of targets')
+    print('stop - ramp linear and rotational speed down to 0 with optional pause at end')
     sys.exit()
 
 # ------ Switch statement ------
@@ -38,6 +39,10 @@ def roto_case(argv):
     m = rotate_odom.RotateOdom(cmd_vel)
     return m
 
+def nav_case(argv):
+    m = nav_odom.NavOdom(cmd_vel)
+    return m
+
 def stop_case(argv):
     m = stop.Stop(cmd_vel)
     return m
@@ -50,6 +55,7 @@ switcher = {
     'movo': movo_case,
     'arc': arc_case,
     'roto': roto_case,
+    'nav': nav_case,
     'stop': stop_case
     }
 
@@ -81,9 +87,6 @@ if __name__ == '__main__':
     print('mowbot is about to execute the following moves:')
     for m in moves:
         m.print()
-    # reply = input('Continue? [y/n] or <Enter>')
-    # if reply != 'y' and reply != '':
-    #     sys.exit()
 
     argv_index = 1      # re-parse the args as we perform each action, to pick up latest pose
     try:

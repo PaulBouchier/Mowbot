@@ -9,8 +9,6 @@ from mowbot_msgs.msg import NavDebug
 import tf
 from math import sqrt, pow, pi, atan2
 from MoveParent import MoveParent
-from rotate_odom import RotateOdom
-
 
 err_circle = 0.25    # meters, distance within which we consider goal achieved
 dead_zone = pi / 200  # deadzone is +/- this for disablig angular rotation
@@ -26,13 +24,9 @@ class TargetXY():
 class NavOdom(MoveParent):
     def __init__(self, cmd_vel):
         super().__init__(cmd_vel)
-        self.target_list = []
         self.distance = 0.0
         self.bearing = 0.0
         self.stopping = False
-
-        self.rotating = False
-        self.rotator = RotateOdom(cmd_vel)  # instantiate a rotator for use between segments
 
         self.nav_debug = NavDebug()
         self.nav_debug_pub = rospy.Publisher('/nav_debug', NavDebug, queue_size=1)
@@ -42,6 +36,7 @@ class NavOdom(MoveParent):
 
     def parse_argv(self, argv):
         num_points = 0
+        self.target_list = []
         while (len(argv) >= (num_points + 2)):
             try:
                 target_x = float(argv[num_points])  # pick off first args from supplied list
@@ -69,11 +64,6 @@ class NavOdom(MoveParent):
             rospy.logwarn('NavOdom.run() called with empty list')
             return True         # done
 
-        if self.rotating:
-            if self.rotator.run():
-                self.rotating = False       # done rotating, allow driving behavior to recommence
-            return False
-
         target_x, target_y = self.target_list[self.current_target].get_xy()
 
         if self.once:
@@ -96,10 +86,6 @@ class NavOdom(MoveParent):
             # rotate to the heading that points at the next target
             at_target, self.distance, self.bearing = self.target_vector(target_x, target_y, self.distance)
             bearing_deg = '{:.02f}'.format(self.bearing * (180 / pi))
-            rospy.loginfo('NavOdom rotating {} deg to next target'.format(bearing_deg))
-            self.rotator.parse_argv([bearing_deg])
-            self.rotator.print()
-            self.rotating = True
             return False
 
         return False
@@ -211,10 +197,6 @@ if __name__ == '__main__':
         m = NavOdom(cmd_vel)
         argv_index += m.parse_argv(sys.argv[argv_index:])
         m.print()
-
-        reply = input('Continue? [y/n] or <Enter>')
-        if reply != 'y' and reply != '':
-            sys.exit()
 
         while (not rospy.is_shutdown()):
             if m.run():
