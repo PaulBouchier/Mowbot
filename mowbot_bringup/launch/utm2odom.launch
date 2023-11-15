@@ -1,0 +1,14 @@
+<launch>
+
+<!-- 0,0 coordinates in lab -->
+<arg name="lab_zero_x" value="1252840" />
+<arg name="lab_zero_y" value="3697860" />
+
+
+<!-- UTM coordinates of 0,0 reference point given to utm2odom node -->
+<node pkg="mowbot_bringup" type="utm2odom.py" name="utm2odom" output="screen" >
+  <param name="zero_x" value="$(arg lab_zero_x)" />
+  <param name="zero_y" value="$(arg lab_zero_y)" />
+</node>
+
+</launch>
