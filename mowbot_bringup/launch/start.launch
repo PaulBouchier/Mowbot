@@ -15,7 +15,9 @@
   <!-- ****************************************************************** -->
   <!-- Start the robot comms node -->
   <!-- ****************************************************************** -->
-  <node name="esp_link" pkg="mowbot_hardware" type="esp_link.py" output="screen" />
+  <node name="esp_link" pkg="mowbot_hardware" type="esp_link.py" output="screen" >
+    <remap from="/odom" to="/odom_wheels" />
+  </node>
 
   <!-- publish robot internal joint tf transforms -->
   <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg model)" />
@@ -59,5 +61,6 @@
 
   <!-- Start the LLA to UTM converter node -->
   <include file="$(find utm_lla)/launch/coordinate_convertion.launch" />
+  <include file="$(find mowbot_bringup)/launch/utm2odom.launch" />
 
 </launch>
