@@ -29,6 +29,7 @@ class MoveParent():
         self.rot_speed = rot_speed_default
         self.full_rot_speed = rot_speed_default
         self.low_rot_speed = low_rot_speed_default
+        self.odom = Odometry()
 
         # Publisher to control the robot's speed
         self.cmd_vel = cmd_vel
