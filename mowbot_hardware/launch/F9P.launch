@@ -47,4 +47,9 @@
     <arg name="param_file_name"  value="zed_f9p" />
     <arg name="node_name" value="gps" />
   </include>
+
+  <!-- Start a node to convert rtcm message types, to match rtcm_client to ublox_gps -->
+  <node name="utm2odom" pkg="mowbot_bringup" type="utm2odom.py" output="screen" />
+
+
 </launch>

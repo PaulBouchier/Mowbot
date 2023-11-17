@@ -54,7 +54,6 @@
 
     <!-- Uncomment the following section and replace "/gx5/nmea/sentence" with the topic you are sending NMEA on if it is not the one we requested -->
     <remap from="/ntrip_client/nmea" to="/nmea" />
-    <remap from="/ntrip_client/rtcm" to="/rtcm" />
   </node>
 
   <!-- Start the ublox node -->
@@ -63,6 +62,9 @@
     <arg name="param_file_name"  value="zed_f9p" />
     <arg name="node_name" value="gps" />
   </include>
+
+  <!-- Start a node to convert rtcm message types, to match rtcm_client to ublox_gps -->
+  <node name="utm2odom" pkg="mowbot_bringup" type="utm2odom.py" output="screen" />
 
   <!-- Start the LLA to UTM converter node -->
   <include file="$(find utm_lla)/launch/coordinate_convertion.launch" />

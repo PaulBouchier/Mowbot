@@ -1,5 +1,5 @@
 device: /dev/ttyACM0
-frame_id: map
+frame_id: odom
 uart1:
   baudrate: 115200
 config_on_startup: false
