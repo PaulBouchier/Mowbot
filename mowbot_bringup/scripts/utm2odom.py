@@ -16,6 +16,7 @@ from tf2_ros import TransformBroadcaster
 
 zero_x = 0.0
 zero_y = 0.0
+odom_msg = Odometry()
 odom_extra_msg = OdomExtra()
 rtcm_msg = Message()
 br = TransformBroadcaster()

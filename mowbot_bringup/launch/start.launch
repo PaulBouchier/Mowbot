@@ -8,9 +8,9 @@
   <arg name="port"                   default = "2101" />
 <!--
   <arg name="mountpoint"             default = "PLSurePath" />
-  <arg name="mountpoint"             default = "VN1" />
--->
   <arg name="mountpoint"             default = "ARLINGTON-76017" />
+-->
+  <arg name="mountpoint"             default = "VN1" />
   <arg name="authenticate"           default = "true" />
   <arg name="username"               default = "paul.bouchier@gmail.com" />
   <arg name="password"               default = "none" />
@@ -63,10 +63,7 @@
     <arg name="node_name" value="gps" />
   </include>
 
-  <!-- Start a node to convert rtcm message types, to match rtcm_client to ublox_gps -->
-  <node name="utm2odom" pkg="mowbot_bringup" type="utm2odom.py" output="screen" />
-
-  <!-- Start the LLA to UTM converter node -->
+  <!-- Start the LLA to UTM to Odometry converter nodes -->
   <include file="$(find utm_lla)/launch/coordinate_convertion.launch" />
   <include file="$(find mowbot_bringup)/launch/utm2odom.launch" />
 
