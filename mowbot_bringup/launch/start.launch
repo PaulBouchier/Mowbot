@@ -7,12 +7,13 @@
   <arg name="host"                   default = "rtk2go.com" />
   <arg name="port"                   default = "2101" />
 <!--
-  <arg name="mountpoint"             default = "ARLINGTON-76017" />
--->
   <arg name="mountpoint"             default = "PLSurePath" />
+  <arg name="mountpoint"             default = "VN1" />
+-->
+  <arg name="mountpoint"             default = "ARLINGTON-76017" />
   <arg name="authenticate"           default = "true" />
   <arg name="username"               default = "paul.bouchier@gmail.com" />
-  <arg name="password"               default = "Unused" />
+  <arg name="password"               default = "none" />
   <arg name="rtcm_message_package"   default = "rtcm_msgs" />
 
   <!-- ****************************************************************** -->
@@ -20,6 +21,7 @@
   <!-- ****************************************************************** -->
   <node name="esp_link" pkg="mowbot_hardware" type="esp_link.py" output="screen" >
     <remap from="/odom" to="/odom_wheels" />
+    <remap from="/tf" to="/tf_wheels" />
   </node>
 
   <!-- publish robot internal joint tf transforms -->

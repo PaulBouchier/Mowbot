@@ -213,7 +213,7 @@ class RxOdometry:
         self.log_cnt += 1
         if (self.log_cnt == self.log_rate):
             self.log_cnt = 0
-            rospy.loginfo("poseX: {:.2f} poseY: {:.2f} heading: {:.2f} speed {:.2f}, odom: {:.2f}".format(
+            rospy.logdebug("Odometry poseX: {:.2f} poseY: {:.2f} compass heading: {:.2f} speed {:.2f}, odom: {:.2f}".format(
                 self.odom.pose.pose.position.x, self.odom.pose.pose.position.y, heading_rad, linear_speed, odometer))
 
         if sequence != (self.last_esp_seq + 1):

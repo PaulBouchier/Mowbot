@@ -33,7 +33,9 @@
 
     <!-- Uncomment the following section and replace "/gx5/nmea/sentence" with the topic you are sending NMEA on if it is not the one we requested -->
     <remap from="/ntrip_client/nmea" to="/nmea" />
+<!--
     <remap from="/ntrip_client/rtcm" to="/rtcm" />
+-->
   </node>
 
   <!-- Start the ublox node -->
