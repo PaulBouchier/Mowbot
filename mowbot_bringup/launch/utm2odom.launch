@@ -1,8 +1,8 @@
 <launch>
 
 <!-- 0,0 coordinates in lab -->
-<arg name="lab_zero_x" value="1252868" />
-<arg name="lab_zero_y" value="3697852" />
+<arg name="lab_zero_x" value="1307960" />
+<arg name="lab_zero_y" value="3697652.8" />
 
 
 <!-- UTM coordinates of 0,0 reference point given to utm2odom node -->
