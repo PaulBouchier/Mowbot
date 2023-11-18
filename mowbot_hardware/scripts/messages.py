@@ -1,7 +1,7 @@
 import sys
 import rospy
 from time import sleep, time
-from math import sin, cos
+from math import sin, cos, pi
 from pySerialTransfer import pySerialTransfer as txfer
 
 from nav_msgs.msg import Odometry
@@ -102,6 +102,13 @@ class RxOdometry:
         self.log_rate = 1000    # print a log message every log_rate OdometryMsg's
         self.log_cnt = 0
 
+    def normalize(self, angle):     # normalize angle to +/- pi
+        if angle > 2 * pi:
+            angle -= 2 * pi
+        if angle < 0:
+            angle += 2 * pi
+        return angle
+
     def handle_odometry(self):
         # rospy.logdebug ('Odometry callback got msg length: {}'.format(self.link.bytesRead))
         self.odom.header.stamp = rospy.Time.now()
@@ -123,6 +130,11 @@ class RxOdometry:
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
         # member heading_rad
         heading_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+
+        # fix up heading, which is almost 180 degrees off coming from the sensor
+        heading_rad = heading_rad - 1.7
+        heading_rad = self.normalize(heading_rad)
+
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
         # member odom_heading_rad
         odom_heading_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
@@ -163,6 +175,8 @@ class RxOdometry:
         # member imuCalStatus
         IMUCalStatus = self.link.rx_obj(obj_type='i', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
+
+        # fix up heading
 
         # populate pose heading quaternion
         quaternion = Quaternion()
