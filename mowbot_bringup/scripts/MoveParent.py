@@ -18,7 +18,7 @@ low_speed_default = 0.15
 vel_slew_rate = 0.5 / loop_rate  # m/s^2 per loop
 rot_speed_default = 0.5    # rotating speed, rad/s
 low_rot_speed_default = 0.25
-rot_slew_rate = 0.5 / loop_rate  # rad/s^2 per loop
+rot_slew_rate = 0.5 / loop_rate  # rad/s^2
 
 class MoveParent():
     def __init__(self, cmd_vel):

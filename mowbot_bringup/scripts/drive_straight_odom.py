@@ -51,7 +51,7 @@ class DriveStraightOdom(MoveParent):
         else:
             self.move_cmd.linear.x = self.slew_vel(-self.speed)
 
-        # rospy.loginfo(self.move_cmd.linear.x)
+        rospy.loginfo(self.move_cmd.linear.x)
         self.cmd_vel.publish(self.move_cmd)
         return False
 

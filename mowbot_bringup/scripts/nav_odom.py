@@ -10,8 +10,8 @@ import tf
 from math import sqrt, pow, pi, atan2
 from MoveParent import MoveParent
 
-err_circle = 0.25    # meters, distance within which we consider goal achieved
-dead_zone = pi / 200  # deadzone is +/- this for disablig angular rotation
+err_circle = 1.0    # meters, distance within which we consider goal achieved
+dead_zone = pi / 40  # deadzone is +/- this for disablig angular rotation
 downramp = 0.75       # downramp is distance at which speed is reduced to slow
 
 class TargetXY():
@@ -108,9 +108,9 @@ class NavOdom(MoveParent):
         if self.bearing < dead_zone and self.bearing > -dead_zone:
             self.move_cmd.angular.z = self.slew_rot(0)
         else:
-            if self.bearing > dead_zone: # and self.distance > err_circle:
+            if self.bearing > dead_zone and self.distance > err_circle:
                 self.move_cmd.angular.z = self.slew_rot(self.rot_speed)
-            if self.bearing < -dead_zone: # and self.distance > err_circle:
+            if self.bearing < -dead_zone and self.distance > err_circle:
                 self.move_cmd.angular.z = self.slew_rot(-self.rot_speed)
 
         # set linear speed, slow down on approach
@@ -134,6 +134,7 @@ class NavOdom(MoveParent):
         y_dist = target_y - self.odom.pose.pose.position.y
         distance = sqrt(pow(x_dist, 2) + pow(y_dist, 2))
         heading = self.normalize(self.odom_extra.heading)
+        # from dpa page: target_angle = (90 - (atan2(yd,xd)*(180/PI))) - (heading*(180/PI));
         bearing = atan2(y_dist, x_dist) - heading
         bearing_normalized = self.normalize(bearing)
         at_target = self.target_acquired(distance, last_distance)
