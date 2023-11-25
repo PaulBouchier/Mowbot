@@ -132,7 +132,7 @@ class RxOdometry:
         heading_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
 
         # fix up heading, which is almost 180 degrees off coming from the sensor
-        heading_rad = heading_rad - 1.7
+        heading_rad = heading_rad - 4.7
         heading_rad = self.normalize(heading_rad)
 
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']

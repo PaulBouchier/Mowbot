@@ -15,8 +15,8 @@ from math import radians, copysign, sqrt, pow, pi, asin, atan2
 loop_rate = 10       # loop rate
 speed_default = 0.35    # driving speed, fwd or back
 low_speed_default = 0.15
-vel_slew_rate = 0.5 / loop_rate  # m/s^2 per loop
-rot_speed_default = 0.5    # rotating speed, rad/s
+vel_slew_rate = 0.25 / loop_rate  # m/s^2 per loop
+rot_speed_default = 0.25    # rotating speed, rad/s
 low_rot_speed_default = 0.25
 rot_slew_rate = 0.5 / loop_rate  # rad/s^2
 
