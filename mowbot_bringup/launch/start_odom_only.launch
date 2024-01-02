@@ -1,0 +1,20 @@
+<launch>
+
+  <!-- Robot model -->
+  <arg name="model" default="$(find mowbot_description)/urdf/rl500.urdf.xacro"/>
+
+  <!-- ****************************************************************** -->
+  <!-- Start the robot comms node -->
+  <!-- ****************************************************************** -->
+  <node name="esp_link" pkg="mowbot_hardware" type="esp_link.py" output="screen" >
+  </node>
+
+  <!-- publish robot internal joint tf transforms -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg model)" />
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher"  name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="5.0" />
+  </node>
+
+
+</launch>
