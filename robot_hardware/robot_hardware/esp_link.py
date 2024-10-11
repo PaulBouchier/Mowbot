@@ -30,8 +30,9 @@ class EspLink(Node):
         try:
             # initialize pySerialTransfer
             self.init_link(esp_port_name)
-            self.init_msgs()
 
+            # initialize message-handler classes
+            self.init_msgs()
             
             '''
             list of callback functions to be called during tick. The index of the function

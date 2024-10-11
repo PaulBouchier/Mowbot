@@ -20,12 +20,13 @@ def main(args=None):
     rclpy.init(args=args)
 
     reset_esp_client = ResetEspClient()
-
-    reset_esp_client = ResetEspClient()
     future = reset_esp_client.send_request()
     rclpy.spin_until_future_complete(reset_esp_client, future)
     response = future.result()
-    reset_esp_client.get_logger().info("Sent reset_esp command")
+    if response.success is True:
+        reset_esp_client.get_logger().info("Sent reset_esp command")
+    else:
+        reset_esp_client.get_logger().info("reset_esp command was not accepted")
 
     reset_esp_client.destroy_node()
     rclpy.shutdown()

@@ -13,6 +13,7 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist, Quaternion
 from robot_interfaces.msg import OdomExtra, PlatformData
 from tf2_ros import TransformBroadcaster
+from std_srvs.srv import SetBool
 
 # Tx Packet IDs
 pktIdPing = 0
@@ -451,12 +452,25 @@ class TxReboot:
         self.link = self.esp_link_node.link
         self.logger = self.esp_link_node.get_logger()
         self.posted = False
+        self.srv = self.esp_link_node.create_service(SetBool, 'reset_esp', self.post)
 
-    def post(self):
+    def add_two_ints_callback(self, request, response):
+        response.sum = request.a + request.b
+        self.get_logger().info('Incoming request\na: %d b: %d' % (request.a, request.b))
+
+        return response
+
+    def post(self, request, response):
         if self.posted:
             self.logger.error('TxReboot previously posted rqst still pending sending')
+        if request.data is not True:
+            response.success = False
+            self.logger.error('esp_reboot request is false, ignoring it')
+            return response
         self.logger.info('TxReboot sending reboot request to ESP32')
         self.posted = True
+        response.success = True
+        return response
     
     def send_posted(self):
         if not self.posted:
