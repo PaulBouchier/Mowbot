@@ -20,7 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'esp_link = robot_hardware.esp_link:main'
+            'esp_link = robot_hardware.esp_link:main',
+            'ping_esp = robot_hardware.ping_esp:main',
+            'reset_esp = robot_hardware.reset_esp:main'
         ],
     },
 )
