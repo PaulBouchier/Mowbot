@@ -10,7 +10,7 @@ from pySerialTransfer import pySerialTransfer as txfer
 from std_msgs.msg import Header, Int32
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import Twist, Quaternion
+from geometry_msgs.msg import Twist, Quaternion, TransformStamped
 from robot_interfaces.msg import OdomExtra, PlatformData
 from tf2_ros import TransformBroadcaster
 from std_srvs.srv import SetBool
@@ -85,7 +85,6 @@ class RxOdometry:
         self.pub = self.esp_link_node.create_publisher(Odometry, 'odom', 10)
         self.odom = Odometry(header=Header(frame_id="odom"))
         self.odom.child_frame_id="base_link"
-        self.odomBroadcaster = TransformBroadcaster(self.esp_link_node)
         self.tf_frame = "odom"
 
         # Note: the following covariance matrices are made up out of thin air
@@ -113,6 +112,11 @@ class RxOdometry:
         self.odom_extra = OdomExtra()
         self.last_esp_seq = 0
 
+        # configure transform publishing
+        self.odomBroadcaster = TransformBroadcaster(self.esp_link_node)
+        self.transform = TransformStamped(header=Header(frame_id="odom"))
+        self.transform.child_frame_id = "base_link"
+
         self.log_rate = 1000    # print a log message every log_rate OdometryMsg's
         self.log_cnt = 0
 
@@ -125,14 +129,13 @@ class RxOdometry:
 
     def handle_odometry(self):
         self.logger.debug ('Odometry callback got msg length: {}'.format(self.link.bytesRead))
-        self.odom.header.stamp = self.esp_link_node.get_clock().now()
+        self.odom.header.stamp = self.esp_link_node.get_clock().now().to_msg()
         rec_size = 0
 
         # populate odom from OdometryMsg
         # member seq
         sequence = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
-        self.odom.header.seq = sequence
         # member espTimestamp
         espTimestamp = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
@@ -202,19 +205,20 @@ class RxOdometry:
         self.pub.publish(self.odom)
 
         # publish to /tf
-        self.odomBroadcaster.sendTransform( (
-                                    self.odom.pose.pose.position.x,
-                                    self.odom.pose.pose.position.y,
-                                    self.odom.pose.pose.position.z), 
-                (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
-                self.esp_link_node.get_clock().now(),
-                "base_link",
-                self.tf_frame )
+        self.transform.header.stamp = self.esp_link_node.get_clock().now().to_msg()
+        self.transform.transform.translation.x = self.odom.pose.pose.position.x
+        self.transform.transform.translation.y = self.odom.pose.pose.position.y
+        self.transform.transform.translation.z = self.odom.pose.pose.position.z
+        self.transform.transform.rotation.x = quaternion.x
+        self.transform.transform.rotation.y = quaternion.y
+        self.transform.transform.rotation.z = quaternion.z
+        self.transform.transform.rotation.w = quaternion.w
+
+        self.odomBroadcaster.sendTransform(self.transform)
 
         # publish joint states
         self.joint_state.position = [left_wheel_angle_rad, right_wheel_angle_rad]
-        self.joint_state.header.stamp = self.esp_link_node.get_clock().now()
-        self.joint_state.header.seq = sequence
+        self.joint_state.header.stamp = self.esp_link_node.get_clock().now().to_msg()
         self.joint_pub.publish(self.joint_state)
 
         # publish odom_extra
@@ -232,8 +236,7 @@ class RxOdometry:
         self.odom_extra.odom_heading = odom_heading_rad
         self.odom_extra.imu_cal_status = IMUCalStatus
 
-        self.odom_extra.header.seq = sequence
-        self.odom_extra.header.stamp = self.esp_link_node.get_clock().now()
+        self.odom_extra.header.stamp = self.esp_link_node.get_clock().now().to_msg()
         self.odom_extra_pub.publish(self.odom_extra)
 
         # print odometry data to logs now and then
@@ -259,42 +262,41 @@ class RxPlatformData:
         self.last_platform_data_seq = 0
 
     def handle_platform_data(self):
-        self.logger.info('PlatformData callback got msg length: {}'.format(self.link.bytesRead))
+        # self.logger.info('PlatformData callback got msg length: {}'.format(self.link.bytesRead))
         rec_size = 0
 
         # populate platform_data from PlatformDataMsg
         # member seq
         sequence = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
-        self.platform_data.header.seq = sequence
         if sequence != self.last_platform_data_seq:
             self.logger.error('RxPlatformData detected lost msgs, seq: {}, expected {}'.format(sequence, self.last_platform_data_seq))
         self.last_platform_data_seq = sequence
         # member espTimestamp
         espTimestamp = self.link.rx_obj(obj_type='I', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['I']
-        # member leftMps
-        self.platform_data.leftMps = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        # member left_mps
+        self.platform_data.left_mps = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
-        # member rightMps
-        self.platform_data.rightMps = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        # member right_mps
+        self.platform_data.right_mps = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
-        # member leftPct
+        # member left_pct
         leftPct = self.link.rx_obj(obj_type='i', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
-        self.platform_data.leftPct = leftPct
-        # member rightPct
+        self.platform_data.left_pct = leftPct
+        # member right_pct
         rightPct = self.link.rx_obj(obj_type='i', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
-        self.platform_data.rightPct = rightPct
-        # member commandedLinear
-        self.platform_data.commandedLinear = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        self.platform_data.right_pct = rightPct
+        # member commanded_linear
+        self.platform_data.commanded_linear = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
-        # member commandedAngular
-        self.platform_data.commandedAngular = self.link.rx_obj(obj_type='f', start_pos=rec_size)
+        # member commanded_angular
+        self.platform_data.commanded_angular = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
 
-        self.platform_data.header.stamp = self.esp_link_node.get_clock().now()
+        self.platform_data.header.stamp = self.esp_link_node.get_clock().now().to_msg()
         if (abs(leftPct) > 100 or abs(leftPct) > 100):
             self.logger.error('RxPlatformData magnitude error: leftPct {} rightPct {}'.format(self.platform_data.leftPct, self.platform_data.rightPct))
         self.platform_data_pub.publish(self.platform_data)
@@ -322,11 +324,19 @@ class TxBITMode:
         self.link = self.esp_link_node.link
         self.logger = self.esp_link_node.get_logger()
         self.posted = False
-    def post(self):
+        self.srv = self.esp_link_node.create_service(SetBool, 'bit_mode', self.post)
+    def post(self, request, response):
         if self.posted:
             self.logger.error('TxBITMode previously posted rqst still pending sending')
         self.logger.info('TxBITMode sending BIT Mode request to ESP32')
+        if request.data is not True:
+            response.success = False
+            self.logger.error('esp_reboot request is false, ignoring it')
+            return response
+        self.logger.info('TxBITMode sending reboot request to ESP32')
         self.posted = True
+        response.success = True
+        return response
     
     def send_posted(self):
         if not self.posted:
@@ -342,11 +352,19 @@ class TxClearOdom:
         self.link = self.esp_link_node.link
         self.logger = self.esp_link_node.get_logger()
         self.posted = False
+        self.srv = self.esp_link_node.create_service(SetBool, 'clear_odom', self.post)
 
     def post(self):
         if self.posted:
             self.logger.error('TxClearOdom previously posted rqst still pending sending')
+        if request.data is not True:
+            response.success = False
+            self.logger.error('clear_odom request is false, ignoring it')
+            return response
+        self.logger.info('TxClearOdom sending clear_odom request to ESP32')
         self.posted = True
+        response.success = True
+        return response
     
     def send_posted(self):
         if not self.posted:
@@ -453,12 +471,6 @@ class TxReboot:
         self.logger = self.esp_link_node.get_logger()
         self.posted = False
         self.srv = self.esp_link_node.create_service(SetBool, 'reset_esp', self.post)
-
-    def add_two_ints_callback(self, request, response):
-        response.sum = request.a + request.b
-        self.get_logger().info('Incoming request\na: %d b: %d' % (request.a, request.b))
-
-        return response
 
     def post(self, request, response):
         if self.posted:
