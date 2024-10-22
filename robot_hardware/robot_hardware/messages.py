@@ -14,6 +14,7 @@ from geometry_msgs.msg import Twist, Quaternion, TransformStamped
 from robot_interfaces.msg import OdomExtra, PlatformData
 from tf2_ros import TransformBroadcaster
 from std_srvs.srv import SetBool
+from rcl_interfaces.msg import SetParametersResult
 
 # Tx Packet IDs
 pktIdPing = 0
@@ -75,11 +76,19 @@ class RxLog:
             case _:
                 self.logger.error("Invalid error level in ESP log msg: " + log_msg)
 
+initial_imu_mount_angle_rad = 0.0  # radians to add to compass heading to get to robot heading
+
 class RxOdometry:
     def __init__(self, esp_link_node):
         self.esp_link_node = esp_link_node  # hold a reference to the esp_link node so we can use its node services and link
         self.link = self.esp_link_node.link
         self.logger = self.esp_link_node.get_logger()
+
+        # configure parameters
+        self.esp_link_node.declare_parameter('imu_mount_angle_rad', initial_imu_mount_angle_rad)  
+        self.imu_mount_angle_rad = self.esp_link_node.get_parameter('imu_mount_angle_rad').get_parameter_value().double_value
+        self.esp_link_node.add_on_set_parameters_callback(self.params_cb)
+        self.esp_link_node.get_logger().info('imu_mount_angle_rad is {}'.format(self.imu_mount_angle_rad))
 
         # configure odometry publishing
         self.pub = self.esp_link_node.create_publisher(Odometry, 'odom', 10)
@@ -120,6 +129,14 @@ class RxOdometry:
         self.log_rate = 1000    # print a log message every log_rate OdometryMsg's
         self.log_cnt = 0
 
+    # handle changes in params
+    def params_cb(self, parameters):
+        self.param_result = SetParametersResult(successful = True)
+        for p in parameters:
+            if p.name == 'imu_mount_angle_rad':
+                self.esp_link_node.get_logger().info('imu_mount_angle_rad in param cb changed to {}'.format(p.value))
+        return self.param_result
+
     def normalize(self, angle):     # normalize angle to +/- pi
         if angle > 2 * pi:
             angle -= 2 * pi
@@ -149,7 +166,7 @@ class RxOdometry:
         heading_rad = self.link.rx_obj(obj_type='f', start_pos=rec_size)
 
         # fix up heading, which is almost 180 degrees off coming from the sensor
-        heading_rad = heading_rad - 4.7
+        heading_rad = heading_rad + self.imu_mount_angle_rad
         heading_rad = self.normalize(heading_rad)
 
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
@@ -192,8 +209,6 @@ class RxOdometry:
         # member imuCalStatus
         IMUCalStatus = self.link.rx_obj(obj_type='i', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
-
-        # fix up heading
 
         # populate pose heading quaternion
         quaternion = Quaternion()
@@ -325,6 +340,7 @@ class TxBITMode:
         self.logger = self.esp_link_node.get_logger()
         self.posted = False
         self.srv = self.esp_link_node.create_service(SetBool, 'bit_mode', self.post)
+
     def post(self, request, response):
         if self.posted:
             self.logger.error('TxBITMode previously posted rqst still pending sending')
@@ -354,7 +370,7 @@ class TxClearOdom:
         self.posted = False
         self.srv = self.esp_link_node.create_service(SetBool, 'clear_odom', self.post)
 
-    def post(self):
+    def post(self, request, response):
         if self.posted:
             self.logger.error('TxClearOdom previously posted rqst still pending sending')
         if request.data is not True:

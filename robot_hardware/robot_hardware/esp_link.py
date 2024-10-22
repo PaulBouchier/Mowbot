@@ -8,6 +8,7 @@ from pySerialTransfer import pySerialTransfer as txfer
 from robot_hardware.messages import RxLog, RxOdometry, RxPlatformData, RxPong, \
      TxBITMode, TxClearOdom, TxDriveMotorsRqst, TxLogLevel, TxPing, TxReboot
 
+
 pilink_log_lvl = 4
 rl500_log_lvl = 4
 odom_log_lvl = 4
