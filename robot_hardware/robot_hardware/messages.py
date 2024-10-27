@@ -310,6 +310,9 @@ class RxPlatformData:
         # member commanded_angular
         self.platform_data.commanded_angular = self.link.rx_obj(obj_type='f', start_pos=rec_size)
         rec_size += txfer.STRUCT_FORMAT_LENGTHS['f']
+        # member bumper_pressed
+        self.platform_data.bumper_pressed = self.link.rx_obj(obj_type='i', start_pos=rec_size)
+        rec_size += txfer.STRUCT_FORMAT_LENGTHS['i']
 
         self.platform_data.header.stamp = self.esp_link_node.get_clock().now().to_msg()
         if (abs(leftPct) > 100 or abs(leftPct) > 100):
@@ -407,7 +410,7 @@ class TxDriveMotorsRqst:
     def callback(self, cmd_vel):
         # drop requests received less than 50ms since the last one
         if ((time() - self.lastRqstTime) < 0.05):
-            self.logger.warning("Dropped too-soon motors rqst")
+            # self.logger.warning("Dropped too-soon motors rqst")
             return
         if self.posted:
             self.logger.warning("TxDriveMotorsRqst request overrun, dropping request")
