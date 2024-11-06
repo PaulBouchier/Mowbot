@@ -1,3 +1,5 @@
+from launch_ros.substitutions import FindPackageShare
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
@@ -21,5 +23,29 @@ def generate_launch_description():
                 'local_easting_origin':     LaunchConfiguration('local_easting_origin'),
                 'local_northing_origin':    LaunchConfiguration('local_northing_origin'),
         }]
+    ),
+    IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare('ublox_dgnss'),
+                'launch',
+                'ublox_rover_hpposllh_navsatfix.launch.py'
+            ])
+        ]),
+    ),
+    IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare('ntrip_client'),
+                'ntrip_client_remap_launch.py'
+            ])
+        ]),
+        launch_arguments={
+            'host': 'rtk2go.com',
+            'port': '2101',
+            'mountpoint': 'VN1',
+            'username': 'paul.bouchier-at-gmail-d-com',
+            'password': 'unused',
+        }.items()
     )
    ])
