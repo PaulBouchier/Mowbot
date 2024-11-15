@@ -27,6 +27,7 @@ setup(
     entry_points={
         'console_scripts': [
             'esp_link = robot_hardware.esp_link:main',
+            'fuse_nav_data = robot_hardware.fuse_nav_data:main',
             'ping_esp = robot_hardware.ping_esp:main',
             'reset_esp = robot_hardware.reset_esp:main',
             'bit_mode = robot_hardware.bit_mode:main',
