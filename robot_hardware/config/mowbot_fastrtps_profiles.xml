@@ -13,8 +13,9 @@
                 <!--
                     REQUIRES UPDATE
                     IP address of the network interface to be used.
+		<address>100.113.161.92</address>  <!-- xps15v -->
                 -->
-                <address>100.66.229.97</address>  <!-- mowbotv -->
+		<address>100.66.229.97</address>  <!-- mowbotv -->
             </interfaceWhiteList>
             <!--
                 REQUIRES UPDATE
@@ -42,8 +43,10 @@
                             <address>127.0.0.1</address>
                             <!--
                                 IP address of the machine we want to communicate to.
+				ACHTUNG!!! Local IP must come last or local subscriber won't receive
                             -->
                             <address>100.113.161.92</address>  <!-- xps15v -->
+                            <address>100.66.229.97</address>  <!-- mowbotv -->
                         </udpv4>
                     </locator>
                 </initialPeersList>
