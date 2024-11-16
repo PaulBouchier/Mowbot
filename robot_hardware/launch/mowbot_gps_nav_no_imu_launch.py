@@ -38,10 +38,16 @@ def generate_launch_description():
     Node(
         package='robot_hardware',
         executable='esp_link',
-        name='esp_link',
-        remappings=[
-                ('/odom', '/odom_wheels'),
-            ]
+        name='esp_link'
+    ),
+    IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare('scripted_bot_driver'),
+                'launch',
+                'servers_launch.py'
+            ])
+        ]),
     ),
     IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
