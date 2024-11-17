@@ -12,8 +12,12 @@ from launch.substitutions import PathJoinSubstitution, TextSubstitution
 def generate_launch_description():
    return LaunchDescription([
     # Declare arguments with default values
-          DeclareLaunchArgument('local_easting_origin',     default_value='692371.60'),
-          DeclareLaunchArgument('local_northing_origin',    default_value='13670689.64'),
+          # Origin at T on driveway ramp from road
+          # DeclareLaunchArgument('local_easting_origin',     default_value='692371.60'),
+          # DeclareLaunchArgument('local_northing_origin',    default_value='13670689.64'),
+          # Origin at east end of Wu-Weng bridge
+          DeclareLaunchArgument('local_easting_origin',     default_value='692374.70'),
+          DeclareLaunchArgument('local_northing_origin',    default_value='13670628.07'),
 
     # lla_utm_local takes gps lat/lon coordinates and converts them to utm offset to some local origin
     # specified by local_easting/northing_orgin
