@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PlatformData.msg"
   "msg/OdomExtra.msg"
   "msg/FuseDebug.msg"
+  "msg/DepthCameraSectorRanges.msg"
   DEPENDENCIES geometry_msgs nav_msgs std_msgs )
 
 if(BUILD_TESTING)

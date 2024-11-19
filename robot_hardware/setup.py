@@ -32,7 +32,8 @@ setup(
             'reset_esp = robot_hardware.reset_esp:main',
             'bit_mode = robot_hardware.bit_mode:main',
             'clear_odom = robot_hardware.clear_odom:main',
-            'dgnss_mon = robot_hardware.dgnss_mon:main'
+            'dgnss_mon = robot_hardware.dgnss_mon:main',
+            'oakDLiteCone = robot_hardware.oakDLiteCone:main'
         ],
     },
 )
