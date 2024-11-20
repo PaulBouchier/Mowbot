@@ -159,7 +159,7 @@ class OakDLiteCone(Node):
                         min_depth_sector = current_sector
                     current_sector -= 2.0 / num_ranges
 
-                    print('{:.1f} '.format(distance), end=' ')
+                    # print('{:.1f} '.format(distance), end=' ')
 
                     if (self.display_video):
                         color = (0,200,40)
@@ -168,7 +168,7 @@ class OakDLiteCone(Node):
                         cv2.putText(depthFrameColor, "{:.1f}m".format(distance), (xmin + 10, ymin + 20), fontType, 0.6, color)
 
                 min_depth_rad = min_depth_sector * (36.5/180) * math.pi
-                print('min depth: {:.1f} in sector {:.1f}, {:.2f} rad'.format(min_depth, min_depth_sector, min_depth_rad))
+                # print('min depth: {:.1f} in sector {:.1f}, {:.2f} rad'.format(min_depth, min_depth_sector, min_depth_rad))
 
                 # send output data from the measurement
                 if (self.display_video):
