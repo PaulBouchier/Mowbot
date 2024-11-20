@@ -347,12 +347,11 @@ class TxBITMode:
     def post(self, request, response):
         if self.posted:
             self.logger.error('TxBITMode previously posted rqst still pending sending')
-        self.logger.info('TxBITMode sending BIT Mode request to ESP32')
         if request.data is not True:
             response.success = False
-            self.logger.error('esp_reboot request is false, ignoring it')
+            self.logger.error('BIT mode request is false, ignoring it')
             return response
-        self.logger.info('TxBITMode sending reboot request to ESP32')
+        self.logger.info('TxBITMode sending BIT Mode request to ESP32')
         self.posted = True
         response.success = True
         return response

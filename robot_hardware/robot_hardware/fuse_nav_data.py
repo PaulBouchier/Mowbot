@@ -126,12 +126,10 @@ def main(args=None):
 
     fuse_nav_data = FuseNavData()
 
-    rclpy.spin(fuse_nav_data)
-
-    # Destroy the node explicitly
-    fuse_nav_data.destroy_node()
-    rclpy.shutdown()
-
+    try:
+        rclpy.spin(fuse_nav_data)
+    except KeyboardInterrupt:
+        print("Shutting down after KeyboardInterrupt")
 
 if __name__ == '__main__':
     main()

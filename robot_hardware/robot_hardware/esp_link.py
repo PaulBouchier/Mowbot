@@ -124,10 +124,10 @@ def main(args=None):
 
     esp_link = EspLink()
 
-    rclpy.spin(esp_link)
-
-    esp_link.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(esp_link)
+    except KeyboardInterrupt:
+        print("Shutting down esp_link after KeyboardInterrupt")
 
 if __name__ == '__main__':
     main()
