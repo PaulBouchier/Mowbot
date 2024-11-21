@@ -78,7 +78,8 @@ def generate_launch_description():
         launch_arguments={
             'host': 'rtk2go.com',
             'port': '2101',
-            'mountpoint': 'EMBER1',
+            'mountpoint': 'VN1',
+            # 'mountpoint': 'EMBER1',
             'username': 'paul.bouchier-at-gmail-d-com',
             'password': 'unused',
         }.items()
