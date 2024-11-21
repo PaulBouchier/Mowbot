@@ -135,6 +135,7 @@ class RxOdometry:
         for p in parameters:
             if p.name == 'imu_mount_angle_rad':
                 self.esp_link_node.get_logger().info('imu_mount_angle_rad in param cb changed to {}'.format(p.value))
+                self.imu_mount_angle_rad = p.value
         return self.param_result
 
     def normalize(self, angle):     # normalize angle to +/- pi
