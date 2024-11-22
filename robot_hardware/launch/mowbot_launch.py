@@ -43,6 +43,7 @@ def generate_launch_description():
         output='screen',
         emulate_tty=True
     ),
+    # esp_link talks to the microcontroller that handles robot HW
     Node(
         package='robot_hardware',
         executable='esp_link',
@@ -50,6 +51,15 @@ def generate_launch_description():
         output='screen',
         emulate_tty=True
     ),
+    # oakDLiteCone looks at ranges from ROI's on the camera
+    Node(
+        package='robot_hardware',
+        executable='oakDLiteCone',
+        name='oakDLiteCone',
+        output='screen',
+        emulate_tty=True
+    ),
+    # scripted_bot_driver starts the action servers that perform the various kinds of moves
     IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
@@ -59,6 +69,7 @@ def generate_launch_description():
             ])
         ]),
     ),
+    # start gps
     IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
@@ -68,6 +79,7 @@ def generate_launch_description():
             ])
         ]),
     ),
+    # ntrip client
     IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
