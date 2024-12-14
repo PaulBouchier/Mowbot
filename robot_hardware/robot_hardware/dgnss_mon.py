@@ -85,7 +85,8 @@ class UbloxDgnssSubscriber(Node):
         self.now = int(self.get_clock().now().nanoseconds/1000000000)
         if (self.now - self.last_hp_pos_llh_msg_time < 10):
             print('E: {0:.2f} N: {1:.2f}'.format(self.utm_msg.pose.position.x, self.utm_msg.pose.position.y), end=' ')
-            print('hdg: {0:.2f}'.format(self.odom_extra_msg.heading), end=' ')
+            # The following print is only supported when the esp_link node is publishing odom_extra
+            # print('hdg: {0:.2f}'.format(self.odom_extra_msg.heading), end=' ')
             print('gps_hdg: {0:.2f}'.format(self.gps_heading), end=' ')
             print('delta_xy: {0:.2f}'.format(self.dist_moved), end=' ')
             print('h_acc: {0:.1f} cm'.format(self.ubx_nav_hp_pos_llh.h_acc/100), end=' ')
