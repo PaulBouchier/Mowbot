@@ -13,11 +13,20 @@ def generate_launch_description():
    return LaunchDescription([
     # Declare arguments with default values
           # Origin at T on driveway ramp from road
-          # DeclareLaunchArgument('local_easting_origin',     default_value='692371.60'),
-          # DeclareLaunchArgument('local_northing_origin',    default_value='13670689.64'),
+          DeclareLaunchArgument('local_easting_origin',     default_value='692371.60'),
+          DeclareLaunchArgument('local_northing_origin',    default_value='13670689.64'),
+
           # Origin at east end of Wu-Weng bridge
-          DeclareLaunchArgument('local_easting_origin',     default_value='692374.70'),
-          DeclareLaunchArgument('local_northing_origin',    default_value='13670628.07'),
+          #DeclareLaunchArgument('local_easting_origin',     default_value='692374.70'),
+          #DeclareLaunchArgument('local_northing_origin',    default_value='13670628.07'),
+
+          # Origin at 0,0
+          # DeclareLaunchArgument('local_easting_origin',     default_value='0.0'),
+          # DeclareLaunchArgument('local_northing_origin',    default_value='0.0'),
+
+          # Origin at Plant on neighbors place at Steve's place
+          # DeclareLaunchArgument('local_easting_origin',     default_value='746978.26'),
+          # DeclareLaunchArgument('local_northing_origin',    default_value='13667305.13'),
 
     # lla_utm_local takes gps lat/lon coordinates and converts them to utm offset to some local origin
     # specified by local_easting/northing_orgin
@@ -90,8 +99,8 @@ def generate_launch_description():
         launch_arguments={
             'host': 'rtk2go.com',
             'port': '2101',
-            'mountpoint': 'VN1',
-            # 'mountpoint': 'EMBER1',
+            #'mountpoint': 'VN1',
+            'mountpoint': 'EMBER1',
             'username': 'paul.bouchier-at-gmail-d-com',
             'password': 'unused',
         }.items()

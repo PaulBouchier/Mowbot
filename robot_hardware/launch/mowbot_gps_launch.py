@@ -12,6 +12,7 @@ from launch.substitutions import PathJoinSubstitution, TextSubstitution
 def generate_launch_description():
    return LaunchDescription([
     # Declare arguments with default values
+          # T-join in ramp on Paul's driveway
           DeclareLaunchArgument('local_easting_origin',     default_value='692371.60'),
           DeclareLaunchArgument('local_northing_origin',    default_value='13670689.64'),
 
